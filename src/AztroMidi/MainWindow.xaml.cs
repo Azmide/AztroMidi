@@ -67,6 +67,7 @@ public partial class MainWindow : Window
         {
             var hwnd = new WindowInteropHelper(this).Handle;
             RoundCorners(hwnd);
+            HwndSource.FromHwnd(hwnd).AddHook(OnWindowMessage);
             _hotkeys = new HotkeyManager(hwnd);
             RegisterHotkeys();
         };
@@ -91,6 +92,18 @@ public partial class MainWindow : Window
         DwmSetWindowAttribute(hwnd, 33, ref round, sizeof(int));
         int dark = 1;
         DwmSetWindowAttribute(hwnd, 20, ref dark, sizeof(int));
+    }
+
+    /// <summary>Another copy of AztroMidi was started: show this window instead.</summary>
+    private IntPtr OnWindowMessage(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        if ((uint)msg == App.ShowMessage)
+        {
+            ExitMiniMode();
+            ShowHint("AztroMidi is already running, so this window was brought back.");
+            handled = true;
+        }
+        return IntPtr.Zero;
     }
 
     private void OnTitleBarMouseDown(object sender, MouseButtonEventArgs e)
@@ -440,18 +453,25 @@ public partial class MainWindow : Window
 
     private void OnPlayPause(object sender, RoutedEventArgs e) => TogglePlay();
 
-    public void TogglePlay()
+    /// <summary>
+    /// Play/pause. <paramref name="fromHotkey"/> is true for the global hotkey: if the
+    /// song is waiting because another app has focus, the hotkey jumps back to Roblox
+    /// instead of pausing. Buttons always pause (clicking AztroMidi itself takes focus
+    /// away from Roblox, so the song would otherwise never be pausable from here).
+    /// </summary>
+    public void TogglePlay() => TogglePlay(fromHotkey: false);
+
+    private void TogglePlay(bool fromHotkey)
     {
         if (_player.Song == null)
         {
             if (_songs.Count > 0) SelectSong((SongList.SelectedItem as SongEntry) ?? VisibleSongs().FirstOrDefault() ?? _songs[0]);
             if (_player.Song == null) return;
         }
-        // Song is waiting because another app has focus: jump back instead of pausing.
-        if (_player.State == PlayState.Playing && _player.WaitingForFocus)
+        if (fromHotkey && _player.State == PlayState.Playing && _player.WaitingForFocus
+            && WindowGuard.FindRobloxWindow() != IntPtr.Zero && WindowGuard.FocusRoblox())
         {
-            if (WindowGuard.FocusRoblox()) { ShowHint("Back in Roblox. Playback continues."); return; }
-            _player.Pause();
+            ShowHint("Back in Roblox. Playback continues.");
             return;
         }
 
@@ -577,7 +597,7 @@ public partial class MainWindow : Window
         var failed = new List<string>();
         void Reg(string key, Action a) { if (!_hotkeys.Register(key, () => Dispatcher.BeginInvoke(a))) failed.Add(key); }
 
-        Reg(h.PlayPause, TogglePlay);
+        Reg(h.PlayPause, () => TogglePlay(fromHotkey: true));
         Reg(h.Stop, () => _player.Stop());
         Reg(h.SlowDown, () => ChangeSpeed(-0.05));
         Reg(h.SpeedUp, () => ChangeSpeed(0.05));
@@ -663,7 +683,7 @@ public partial class MainWindow : Window
 
         if (_player.WaitingForFocus)
             HintText.Text = $"Waiting: Roblox only accepts keys while it is the active window. " +
-                            $"Press {_settings.Hotkeys.PlayPause} or Play in the mini player to jump back.";
+                            $"Press {_settings.Hotkeys.PlayPause} to jump back, or Pause to stop here.";
         else
             HintText.Text = _hint;
     }

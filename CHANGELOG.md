@@ -5,6 +5,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-10-29
+
+### Fixed
+- The Pause button in AztroMidi did not pause in Roblox mode; it jumped back to Roblox instead.
+  Only the F1 hotkey jumps back now, buttons always pause.
+- Hotkeys (F1, F7...) stopped working when AztroMidi was opened twice. Starting it again now
+  brings the running window back instead of opening a second copy.
+
 ## [1.3.0] - 2026-10-29
 
 ### Added
