@@ -24,6 +24,7 @@ public partial class MiniPlayer : Window
     private const int WS_EX_NOACTIVATE = 0x08000000;
 
     private const double MiniWidth = 300;
+    private const double MiniHeight = 190;
 
     private readonly MainWindow _main;
     private readonly AppSettings _settings;
@@ -57,15 +58,18 @@ public partial class MiniPlayer : Window
 
     private void PlaceWindow(bool force = false)
     {
+        // The size is fixed on purpose. Letting WPF size this layered window to its
+        // content made Windows squeeze it to 2 px wide when it was positioned before
+        // the first layout pass, which looked like the mini player had vanished.
+        if (Width != MiniWidth) Width = MiniWidth;
+        if (Height != MiniHeight) Height = MiniHeight;
+
         if (_settings.MiniSnapToRoblox && WindowGuard.RobloxClientRect() is { } r)
         {
             var source = PresentationSource.FromVisual(this);
             var toDip = source?.CompositionTarget?.TransformFromDevice ?? Matrix.Identity;
             var topRight = toDip.Transform(new Point(r.Right, r.Top));
             // Leave room for Roblox's own top-right buttons.
-            // Never trust ActualWidth before the first layout pass: placing the
-            // window at the screen edge with a zero width makes Windows shrink it.
-            if (Width < MiniWidth) Width = MiniWidth;
             double left = topRight.X - MiniWidth - 6;
             double top = topRight.Y + 46;
             if (Math.Abs(Left - left) > 0.5 || Math.Abs(Top - top) > 0.5) { Left = left; Top = top; }
@@ -73,10 +77,15 @@ public partial class MiniPlayer : Window
         }
         if (!force) return;
 
-        if (!double.IsNaN(_settings.MiniLeft) && !double.IsNaN(_settings.MiniTop))
+        var screen = new Rect(SystemParameters.VirtualScreenLeft, SystemParameters.VirtualScreenTop,
+                              SystemParameters.VirtualScreenWidth, SystemParameters.VirtualScreenHeight);
+        var saved = new Rect(_settings.MiniLeft, _settings.MiniTop, MiniWidth, MiniHeight);
+        // Only reuse the saved spot if most of the player would still be on a screen.
+        if (!double.IsNaN(saved.X) && !double.IsNaN(saved.Y) &&
+            screen.Contains(new Point(saved.X + 40, saved.Y + 20)) && screen.Contains(new Point(saved.Right - 40, saved.Y + 20)))
         {
-            Left = _settings.MiniLeft;
-            Top = _settings.MiniTop;
+            Left = saved.X;
+            Top = saved.Y;
         }
         else
         {

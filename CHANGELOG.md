@@ -10,6 +10,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ### Fixed
 - The Pause button in AztroMidi did not pause in Roblox mode; it jumped back to Roblox instead.
   Only the F1 hotkey jumps back now, buttons always pause.
+- The mini player could shrink to 2 px wide and seem to disappear after F7, especially after it had been dragged.
 - Hotkeys (F1, F7...) stopped working when AztroMidi was opened twice. Starting it again now
   brings the running window back instead of opening a second copy.
 

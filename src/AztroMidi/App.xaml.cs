@@ -20,7 +20,12 @@ public partial class App : Application
     {
         // Only one AztroMidi at a time: global hotkeys can belong to a single app,
         // so a second copy would silently lose F1/F7 to the first one.
-        _single = new Mutex(true, "AztroMidi.SingleInstance", out bool first);
+#if DEBUG
+        const string lockName = "AztroMidi.SingleInstance.Debug"; // dev builds can run next to the installed app
+#else
+        const string lockName = "AztroMidi.SingleInstance";
+#endif
+        _single = new Mutex(true, lockName, out bool first);
         if (!first)
         {
             PostMessage(HWND_BROADCAST, ShowMessage, IntPtr.Zero, IntPtr.Zero);
