@@ -71,7 +71,12 @@ public partial class MainWindow : Window
             _hotkeys = new HotkeyManager(hwnd);
             RegisterHotkeys();
         };
-        StateChanged += (_, _) => MaxButton.Content = WindowState == WindowState.Maximized ? "" : "";
+        StateChanged += (_, _) =>
+        {
+            MaxButton.Content = WindowState == WindowState.Maximized ? "" : "";
+            MaxButton.ToolTip = WindowState == WindowState.Maximized ? "Restore" : "Maximize";
+            ApplyMaximizedPadding();
+        };
         Closing += (_, _) =>
         {
             _settings.Save();
@@ -106,10 +111,25 @@ public partial class MainWindow : Window
         return IntPtr.Zero;
     }
 
-    private void OnTitleBarMouseDown(object sender, MouseButtonEventArgs e)
+    [DllImport("user32.dll")] private static extern int GetSystemMetrics(int index);
+
+    /// <summary>
+    /// A maximized window with a custom title bar is placed slightly outside the
+    /// screen (by the invisible resize frame). Pad the content by that amount so
+    /// nothing is cut off and the window sits exactly inside the work area.
+    /// </summary>
+    private void ApplyMaximizedPadding()
     {
-        if (e.ClickCount == 2) { OnMaximize(sender, e); return; }
-        if (e.ButtonState == MouseButtonState.Pressed) DragMove();
+        if (WindowState != WindowState.Maximized)
+        {
+            RootGrid.Margin = new Thickness(0);
+            return;
+        }
+        const int SM_CXSIZEFRAME = 32, SM_CYSIZEFRAME = 33, SM_CXPADDEDBORDER = 92;
+        double scale = VisualTreeHelper.GetDpi(this).DpiScaleX;
+        double x = (GetSystemMetrics(SM_CXSIZEFRAME) + GetSystemMetrics(SM_CXPADDEDBORDER)) / scale;
+        double y = (GetSystemMetrics(SM_CYSIZEFRAME) + GetSystemMetrics(SM_CXPADDEDBORDER)) / scale;
+        RootGrid.Margin = new Thickness(x, y, x, y);
     }
 
     private void OnMinimize(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;

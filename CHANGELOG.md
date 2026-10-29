@@ -7,6 +7,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [1.3.1] - 2026-10-29
 
+### Changed
+- The title bar now behaves like a normal Windows title bar: drag a maximized window down to restore it,
+  double-click to maximize, snap to screen edges, and maximizing no longer covers the taskbar.
+
 ### Fixed
 - The Pause button in AztroMidi did not pause in Roblox mode; it jumped back to Roblox instead.
   Only the F1 hotkey jumps back now, buttons always pause.

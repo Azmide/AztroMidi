@@ -3,16 +3,22 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:controls="clr-namespace:AztroMidi.Controls"
         Title="AztroMidi" Width="1120" Height="800" MinWidth="940" MinHeight="660"
-        WindowStartupLocation="CenterScreen" WindowStyle="None" ResizeMode="CanResize"
+        WindowStartupLocation="CenterScreen" WindowStyle="SingleBorderWindow" ResizeMode="CanResize"
         Background="{StaticResource Base}" Foreground="{StaticResource Ink}"
         FontFamily="{StaticResource UiFont}" AllowDrop="True" Drop="OnDrop" DragOver="OnDragOver"
         UseLayoutRounding="True" TextOptions.TextFormattingMode="Display">
 
+    <!--
+        The top 60 px act as a real Windows title bar: drag to move, drag down from
+        maximized to restore, double-click to maximize, Snap to screen edges.
+        Interactive elements inside it opt out with IsHitTestVisibleInChrome.
+    -->
     <WindowChrome.WindowChrome>
-        <WindowChrome CaptionHeight="0" ResizeBorderThickness="6" GlassFrameThickness="0" CornerRadius="0"/>
+        <WindowChrome CaptionHeight="60" ResizeBorderThickness="6" GlassFrameThickness="0" CornerRadius="0"
+                      UseAeroCaptionButtons="False"/>
     </WindowChrome.WindowChrome>
 
-    <Grid>
+    <Grid x:Name="RootGrid">
         <Border Background="{StaticResource WindowGlow}" IsHitTestVisible="False"/>
         <Grid>
             <Grid.RowDefinitions>
@@ -22,8 +28,7 @@
             </Grid.RowDefinitions>
 
             <!-- ============ Title bar / navigation ============ -->
-            <Border Grid.Row="0" Background="#CC14171A" BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1"
-                    MouseLeftButtonDown="OnTitleBarMouseDown">
+            <Border Grid.Row="0" Background="#CC14171A" BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1">
                 <Grid Margin="18,0,10,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
@@ -50,13 +55,15 @@
                         </Border>
                     </StackPanel>
 
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                WindowChrome.IsHitTestVisibleInChrome="True">
                         <RadioButton x:Name="NavPlayer" Style="{StaticResource NavTab}" Content="Player" GroupName="Nav" IsChecked="True" Checked="OnNav"/>
                         <RadioButton x:Name="NavHumanize" Style="{StaticResource NavTab}" Content="Humanize" GroupName="Nav" Checked="OnNav"/>
                         <RadioButton x:Name="NavSettings" Style="{StaticResource NavTab}" Content="Settings" GroupName="Nav" Checked="OnNav"/>
                     </StackPanel>
 
-                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center"
+                                WindowChrome.IsHitTestVisibleInChrome="True">
                         <Button x:Name="MiniButton" Style="{StaticResource IconButton}" Content="&#xE8A7;" ToolTip="Mini player over Roblox (F7)" Click="OnMini"/>
                         <Button x:Name="PinButton" Style="{StaticResource IconButton}" Content="&#xE718;" ToolTip="Always on top" Click="OnPin"/>
                         <Button Style="{StaticResource IconButton}" Content="&#xE921;" ToolTip="Minimize" Click="OnMinimize"/>
