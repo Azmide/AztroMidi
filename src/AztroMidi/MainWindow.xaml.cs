@@ -3,6 +3,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -18,6 +19,7 @@ public partial class MainWindow : Window
     private readonly Player _player;
     private readonly DispatcherTimer _frame;
     private HotkeyManager? _hotkeys;
+    private MiniPlayer? _mini;
 
     private List<SongEntry> _songs = new();
     private List<TrackItem> _tracks = new();
@@ -25,11 +27,19 @@ public partial class MainWindow : Window
     private bool _seeking;
     private bool _syncing;
     private string _hint = "";
+    private string _lastNext = "";
+    private int _frameCount;
     private readonly List<Action> _refreshers = new();
+
+    public Player Player => _player;
 
     public MainWindow()
     {
         InitializeComponent();
+        // Fit smaller screens such as 1366x768 laptops.
+        var work = SystemParameters.WorkArea;
+        Height = Math.Min(Height, work.Height - 16);
+        Width = Math.Min(Width, work.Width - 16);
         _player = new Player(_settings);
         _player.StateChanged += () => Dispatcher.BeginInvoke(UpdateState);
         _player.Finished += () => Dispatcher.BeginInvoke(OnSongFinished);
@@ -51,6 +61,7 @@ public partial class MainWindow : Window
         BuildSettingsPage();
         ApplySettingsToUi();
         LoadLibrary();
+        RestoreLastSong();
 
         SourceInitialized += (_, _) =>
         {
@@ -63,6 +74,7 @@ public partial class MainWindow : Window
         Closing += (_, _) =>
         {
             _settings.Save();
+            _mini?.Close();
             _hotkeys?.Dispose();
             _player.Dispose();
         };
@@ -114,6 +126,31 @@ public partial class MainWindow : Window
         PageSettings.Visibility = NavSettings.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
     }
 
+    // ------------------------------------------------------------------ mini player
+
+    private void OnMini(object sender, RoutedEventArgs e) => EnterMiniMode();
+
+    public void EnterMiniMode()
+    {
+        _mini ??= new MiniPlayer(this, _settings);
+        _mini.Show();
+        Hide();
+    }
+
+    public void ExitMiniMode()
+    {
+        _mini?.Hide();
+        Show();
+        if (WindowState == WindowState.Minimized) WindowState = WindowState.Normal;
+        Activate();
+    }
+
+    private void ToggleMiniMode()
+    {
+        if (_mini?.IsVisible == true) ExitMiniMode();
+        else EnterMiniMode();
+    }
+
     // ------------------------------------------------------------------ library
 
     private void LoadLibrary()
@@ -139,16 +176,34 @@ public partial class MainWindow : Window
             }
             catch (Exception ex)
             {
-                SetHint($"Could not read folder: {ex.Message}");
+                ShowHint($"Could not read folder: {ex.Message}");
             }
-            LibraryInfo.Text = $"{_songs.Count} songs · {folder}";
+            LibraryInfo.Text = folder;
+            LibraryInfo.ToolTip = folder;
         }
         else
         {
             LibraryInfo.Text = "No folder selected";
         }
         _songs.AddRange(extra.Where(e => _songs.All(s => s.Path != e.Path)));
+
+        var favs = new HashSet<string>(_settings.Favorites, StringComparer.OrdinalIgnoreCase);
+        foreach (var s in _songs) s.IsFavorite = favs.Contains(s.Path);
         ApplySearch();
+    }
+
+    private void RestoreLastSong()
+    {
+        var path = _settings.LastSong;
+        if (string.IsNullOrEmpty(path) || !File.Exists(path)) return;
+        var song = _songs.FirstOrDefault(s => string.Equals(s.Path, path, StringComparison.OrdinalIgnoreCase));
+        if (song == null)
+        {
+            song = new SongEntry { Path = path, Folder = "(added)" };
+            _songs.Add(song);
+            ApplySearch();
+        }
+        SelectSong(song);
     }
 
     private static bool IsMidi(string path)
@@ -158,19 +213,44 @@ public partial class MainWindow : Window
             || ext.Equals(".rmi", StringComparison.OrdinalIgnoreCase);
     }
 
+    private List<SongEntry> VisibleSongs() => (SongList.ItemsSource as List<SongEntry>) ?? _songs;
+
     private void ApplySearch()
     {
         var q = SearchBox.Text.Trim();
-        var items = q.Length == 0
-            ? _songs
-            : _songs.Where(s => s.Name.Contains(q, StringComparison.OrdinalIgnoreCase)
-                             || s.Folder.Contains(q, StringComparison.OrdinalIgnoreCase)).ToList();
-        SongList.ItemsSource = items;
+        IEnumerable<SongEntry> items = _songs;
+        if (FilterFav.IsChecked == true) items = items.Where(s => s.IsFavorite);
+        if (q.Length > 0)
+            items = items.Where(s => s.Name.Contains(q, StringComparison.OrdinalIgnoreCase)
+                                  || s.Folder.Contains(q, StringComparison.OrdinalIgnoreCase));
+        var list = items.ToList();
+
+        _syncing = true;
+        SongList.ItemsSource = list;
+        if (_current != null) SongList.SelectedItem = list.FirstOrDefault(s => s.Path == _current.Path);
+        _syncing = false;
+
+        CountText.Text = list.Count == _songs.Count ? $"{_songs.Count} songs" : $"{list.Count} of {_songs.Count}";
         LibraryEmpty.Visibility = _songs.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-        if (_current != null) SongList.SelectedItem = items.FirstOrDefault(s => s.Path == _current.Path);
     }
 
     private void OnSearch(object sender, TextChangedEventArgs e) => ApplySearch();
+
+    private void OnFilterChanged(object sender, RoutedEventArgs e)
+    {
+        if (SongList != null) ApplySearch();
+    }
+
+    private void OnToggleFavorite(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.Tag is not SongEntry song) return;
+        song.IsFavorite = !song.IsFavorite;
+        _settings.Favorites.RemoveAll(p => string.Equals(p, song.Path, StringComparison.OrdinalIgnoreCase));
+        if (song.IsFavorite) _settings.Favorites.Add(song.Path);
+        _settings.Save();
+        if (FilterFav.IsChecked == true) ApplySearch();
+        e.Handled = true;
+    }
 
     private void OnPickFolder(object sender, RoutedEventArgs e)
     {
@@ -210,7 +290,7 @@ public partial class MainWindow : Window
             if (Directory.Exists(p)) files.AddRange(Directory.EnumerateFiles(p, "*.*", SearchOption.AllDirectories).Where(IsMidi));
             else if (File.Exists(p) && IsMidi(p)) files.Add(p);
         }
-        if (files.Count == 0) { SetHint("No MIDI files found in what you dropped."); return; }
+        if (files.Count == 0) { ShowHint("No MIDI files found in what you dropped."); return; }
 
         SongEntry? first = null;
         foreach (var f in files)
@@ -223,6 +303,7 @@ public partial class MainWindow : Window
             }
             first ??= existing;
         }
+        FilterAll.IsChecked = true;
         ApplySearch();
         if (first != null) SelectSong(first);
     }
@@ -251,16 +332,17 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            SetHint($"Could not open {song.Name}: {ex.Message}");
+            ShowHint($"Could not open {song.Name}: {ex.Message}");
             return;
         }
 
         _current = song;
+        _settings.LastSong = song.Path;
         _player.Load(midi);
 
         _syncing = true;
         SongList.SelectedItem = song;
-        SongList.ScrollIntoView(song);
+        if (SongList.SelectedItem != null) SongList.ScrollIntoView(song);
         _syncing = false;
 
         SongTitle.Text = song.Name;
@@ -269,16 +351,20 @@ public partial class MainWindow : Window
         BuildTrackList(midi);
         UpdateTranspose();
         UpdateState();
-        SetHint(_settings.OnlyWhenRobloxFocused
-            ? $"Loaded. Press {_settings.Hotkeys.PlayPause} inside Roblox to start playing."
-            : $"Loaded. Press Play, then click into Roblox within {_settings.CountdownSeconds}s.");
+        ShowHint(_settings.Output switch
+        {
+            OutputMode.Preview => "Loaded. Press Play to listen on this PC.",
+            OutputMode.Background => $"Loaded. Press {_settings.Hotkeys.PlayPause} to play into Roblox, even from other apps.",
+            _ when _settings.OnlyWhenRobloxFocused => $"Loaded. Press {_settings.Hotkeys.PlayPause} inside Roblox to start playing.",
+            _ => $"Loaded. Press Play, then click into Roblox within {_settings.CountdownSeconds}s.",
+        });
 
         if (autoPlay) _player.Play(useCountdown: false);
     }
 
-    private void StepSong(int dir, bool autoPlay)
+    public void StepSong(int dir, bool autoPlay)
     {
-        var list = SongList.ItemsSource as List<SongEntry> ?? _songs;
+        var list = VisibleSongs();
         if (list.Count == 0) return;
         int idx = _current == null ? -1 : list.FindIndex(s => s.Path == _current.Path);
         idx = ((idx + dir) % list.Count + list.Count) % list.Count;
@@ -350,11 +436,11 @@ public partial class MainWindow : Window
 
     private void OnPlayPause(object sender, RoutedEventArgs e) => TogglePlay();
 
-    private void TogglePlay()
+    public void TogglePlay()
     {
         if (_player.Song == null)
         {
-            if (_songs.Count > 0) SelectSong((SongList.SelectedItem as SongEntry) ?? _songs[0]);
+            if (_songs.Count > 0) SelectSong((SongList.SelectedItem as SongEntry) ?? VisibleSongs().FirstOrDefault() ?? _songs[0]);
             if (_player.Song == null) return;
         }
         _player.TogglePlay();
@@ -364,7 +450,7 @@ public partial class MainWindow : Window
     private void OnPrev(object sender, RoutedEventArgs e) => StepSong(-1, IsPlaying());
     private void OnNext(object sender, RoutedEventArgs e) => StepSong(1, IsPlaying());
 
-    private bool IsPlaying() => _player.State is PlayState.Playing or PlayState.Countdown;
+    public bool IsPlaying() => _player.State is PlayState.Playing or PlayState.Countdown;
 
     private void OnProgressDown(object sender, MouseButtonEventArgs e) => _seeking = true;
 
@@ -381,10 +467,10 @@ public partial class MainWindow : Window
         SpeedText.Text = $"{_settings.Speed:0.00}x";
     }
 
-    private void ChangeSpeed(double delta)
+    public void ChangeSpeed(double delta)
     {
         SpeedSlider.Value = Math.Clamp(Math.Round(SpeedSlider.Value + delta, 2), SpeedSlider.Minimum, SpeedSlider.Maximum);
-        SetHint($"Speed {_settings.Speed:0.00}x");
+        ShowHint($"Speed {_settings.Speed:0.00}x");
     }
 
     private void OnTransposeDown(object sender, RoutedEventArgs e) => SetTranspose(_player.Transpose - 1);
@@ -434,9 +520,33 @@ public partial class MainWindow : Window
         if (_syncing) return;
         _settings.Loop = QuickLoop.IsChecked == true;
         _settings.AutoNext = QuickAutoNext.IsChecked == true;
-        _settings.OnlyWhenRobloxFocused = QuickGuard.IsChecked == true;
         RefreshSettingsPages();
     }
+
+    private void OnOutputChanged(object sender, RoutedEventArgs e)
+    {
+        if (_syncing || OutPreview == null) return;
+        var mode = OutPreview.IsChecked == true ? OutputMode.Preview
+                 : OutBackground.IsChecked == true ? OutputMode.Background
+                 : OutputMode.Keyboard;
+        SetOutput(mode);
+    }
+
+    private void SetOutput(OutputMode mode)
+    {
+        _player.SetOutput(mode);
+        RefreshSettingsPages();
+        ShowHint(mode == OutputMode.Background
+            ? "Background mode is experimental. If notes don't play in your game, switch back to Roblox mode."
+            : OutputDescription(mode));
+    }
+
+    private static string OutputDescription(OutputMode mode) => mode switch
+    {
+        OutputMode.Background => "Experimental. Keeps playing into Roblox while you use other apps.",
+        OutputMode.Preview => "Plays through your PC speakers. Nothing goes to Roblox.",
+        _ => "Real key presses. Click into Roblox before playing.",
+    };
 
     // ------------------------------------------------------------------ hotkeys
 
@@ -453,22 +563,25 @@ public partial class MainWindow : Window
         Reg(h.SlowDown, () => ChangeSpeed(-0.05));
         Reg(h.SpeedUp, () => ChangeSpeed(0.05));
         Reg(h.NextSong, () => StepSong(1, IsPlaying()));
+        Reg(h.ToggleMini, ToggleMiniMode);
         Reg(h.ToggleHumanize, () =>
         {
             _settings.Humanize.Enabled = !_settings.Humanize.Enabled;
             _player.Rebuild();
             RefreshSettingsPages();
-            SetHint(_settings.Humanize.Enabled ? "Humanize on" : "Humanize off");
+            ShowHint(_settings.Humanize.Enabled ? "Humanize on" : "Humanize off");
         });
 
-        HotkeyText.Text = $"{h.PlayPause} play/pause · {h.Stop} stop · {h.SlowDown}/{h.SpeedUp} speed · {h.NextSong} next";
-        if (failed.Count > 0) SetHint($"These hotkeys are used by another app: {string.Join(", ", failed)}");
+        HotkeyText.Text = $"{h.PlayPause} play/pause · {h.Stop} stop · {h.SlowDown}/{h.SpeedUp} speed · {h.NextSong} next · {h.ToggleMini} mini";
+        MiniButton.ToolTip = $"Mini player over Roblox ({h.ToggleMini})";
+        if (failed.Count > 0) ShowHint($"These hotkeys are used by another app: {string.Join(", ", failed)}");
     }
 
     // ------------------------------------------------------------------ live updates
 
     private void OnFrame()
     {
+        if (!IsVisible) return;
         Piano.Tick();
         if (!_seeking && _player.Song != null)
         {
@@ -478,21 +591,51 @@ public partial class MainWindow : Window
         }
         if (_player.State == PlayState.Countdown)
             StatusText.Text = $"Starting in {Math.Ceiling(_player.CountdownRemaining):0}…";
+
+        // The upcoming-keys readout does not need 60 fps.
+        if (++_frameCount % 6 == 0) UpdateNextKeys();
     }
+
+    private void UpdateNextKeys()
+    {
+        var next = _player.Upcoming(14);
+        var joined = string.Join(" ", next);
+        if (joined == _lastNext) return;
+        _lastNext = joined;
+        NextKeysText.Inlines.Clear();
+        if (next.Count == 0)
+        {
+            NextKeysText.Inlines.Add(new Run("—") { Foreground = (Brush)FindResource("InkFaint") });
+            return;
+        }
+        for (int i = 0; i < next.Count; i++)
+        {
+            NextKeysText.Inlines.Add(new Run(next[i] + "  ")
+            {
+                Foreground = (Brush)FindResource(i == 0 ? "Brand" : i < 4 ? "Ink" : "InkFaint"),
+                FontWeight = i == 0 ? FontWeights.Bold : FontWeights.Normal,
+            });
+        }
+    }
+
+    /// <summary>Status label and brush key for the current player state (shared with the mini player).</summary>
+    public static (string Text, string Brush) Describe(Player player) => player.State switch
+    {
+        PlayState.Playing when player.WaitingForFocus => (
+            player.Settings.Output == OutputMode.Background ? "Roblox not found" : "Waiting for Roblox", "Warning"),
+        PlayState.Playing when player.Settings.Output == OutputMode.Preview => ("Previewing", "Success"),
+        PlayState.Playing => ("Playing", "Success"),
+        PlayState.Countdown => ($"Starting in {Math.Ceiling(player.CountdownRemaining):0}…", "Warning"),
+        PlayState.Paused => ("Paused", "BrandMuted"),
+        _ => (player.Song == null ? "Idle" : "Ready", "InkMuted"),
+    };
 
     private void UpdateState()
     {
         ProgressSlider.Maximum = Math.Max(0.1, _player.Length);
         LenText.Text = Format(_player.Length);
 
-        var (text, brush) = _player.State switch
-        {
-            PlayState.Playing when _player.WaitingForFocus => ("Waiting for Roblox", "Warning"),
-            PlayState.Playing => ("Playing", "Success"),
-            PlayState.Countdown => ("Get ready…", "Warning"),
-            PlayState.Paused => ("Paused", "BrandMuted"),
-            _ => (_player.Song == null ? "Idle" : "Ready", "InkMuted"),
-        };
+        var (text, brush) = Describe(_player);
         StatusText.Text = text;
         StatusDot.Fill = (Brush)FindResource(brush);
 
@@ -501,18 +644,20 @@ public partial class MainWindow : Window
         PlayLabel.Text = active ? "Pause" : "Play";
 
         if (_player.WaitingForFocus)
-            SetHint("Paused until the Roblox window is focused. Click into the game to continue.");
-        else if (_player.State == PlayState.Playing)
-            SetHint(_hint.StartsWith("Paused until") ? "" : _hint);
+            HintText.Text = _settings.Output == OutputMode.Background
+                ? "Waiting for Roblox to start. Open the game and playback continues."
+                : "Paused until the Roblox window is focused. Click into the game to continue.";
+        else
+            HintText.Text = _hint;
     }
 
-    private void SetHint(string text)
+    public void ShowHint(string text)
     {
         _hint = text;
         HintText.Text = text;
     }
 
-    private static string Format(double seconds)
+    public static string Format(double seconds)
     {
         var t = TimeSpan.FromSeconds(Math.Max(0, seconds));
         return t.TotalHours >= 1 ? t.ToString(@"h\:mm\:ss") : t.ToString(@"m\:ss");
@@ -525,8 +670,6 @@ public partial class MainWindow : Window
         _syncing = true;
         SpeedSlider.Value = Math.Clamp(_settings.Speed, SpeedSlider.Minimum, SpeedSlider.Maximum);
         SpeedText.Text = $"{SpeedSlider.Value:0.00}x";
-        Layout61.IsChecked = _settings.Layout == KeyLayout.Keys61;
-        Layout88.IsChecked = _settings.Layout == KeyLayout.Keys88;
         Piano.SetRange(_settings.Layout);
         KeyHint.Visibility = _settings.Layout == KeyLayout.Keys88 ? Visibility.Visible : Visibility.Collapsed;
         _syncing = false;
@@ -542,9 +685,12 @@ public partial class MainWindow : Window
         HumanizeEnabled.IsChecked = _settings.Humanize.Enabled;
         QuickLoop.IsChecked = _settings.Loop;
         QuickAutoNext.IsChecked = _settings.AutoNext;
-        QuickGuard.IsChecked = _settings.OnlyWhenRobloxFocused;
         Layout61.IsChecked = _settings.Layout == KeyLayout.Keys61;
         Layout88.IsChecked = _settings.Layout == KeyLayout.Keys88;
+        OutKeyboard.IsChecked = _settings.Output == OutputMode.Keyboard;
+        OutBackground.IsChecked = _settings.Output == OutputMode.Background;
+        OutPreview.IsChecked = _settings.Output == OutputMode.Preview;
+        OutputHint.ToolTip = OutputDescription(_settings.Output);
         foreach (var r in _refreshers) r();
         _syncing = false;
     }
@@ -568,7 +714,7 @@ public partial class MainWindow : Window
                 p.Apply();
                 _player.Rebuild();
                 RefreshSettingsPages();
-                SetHint($"Humanize preset: {p.Name}");
+                ShowHint($"Humanize preset: {p.Name}");
             };
             PresetPanel.Children.Add(b);
         }
@@ -604,6 +750,10 @@ public partial class MainWindow : Window
     private void BuildSettingsPage()
     {
         var s = _settings;
+        AddCombo(PlaybackRows, "Send notes to", "Background mode is experimental and may not work in every game.",
+            new[] { "Roblox (focused window)", "Roblox in background (experimental)", "Preview on this PC" },
+            () => (int)s.Output,
+            i => SetOutput((OutputMode)i));
         AddCombo(PlaybackRows, "Out-of-range notes", "What to do with notes the piano cannot play.",
             new[] { "Fold into range (octave shift)", "Skip them" },
             () => s.OutOfRange == OutOfRange.Fold ? 0 : 1,
@@ -618,7 +768,7 @@ public partial class MainWindow : Window
             () => s.AutoTranspose, v => s.AutoTranspose = v);
         AddSwitch(PlaybackRows, "Skip drum tracks", "Ignore MIDI channel 10 (percussion) which sounds wrong on a piano.",
             () => s.SkipDrums, v => { s.SkipDrums = v; _player.Rebuild(); });
-        AddSwitch(PlaybackRows, "Only play while Roblox is focused", "Stops key presses from going into other apps.",
+        AddSwitch(PlaybackRows, "Only play while Roblox is focused", "In Roblox mode, stop key presses from going into other apps.",
             () => s.OnlyWhenRobloxFocused, v => s.OnlyWhenRobloxFocused = v);
         AddSwitch(PlaybackRows, "Always on top", "Keep AztroMidi above the game window.",
             () => s.AlwaysOnTop, v => { s.AlwaysOnTop = v; ApplyTopmost(); });
@@ -626,6 +776,14 @@ public partial class MainWindow : Window
             0, 10, 1, () => s.CountdownSeconds, v => s.CountdownSeconds = (int)v, v => v == 0 ? "Off" : $"{v:0} s");
         AddSlider(PlaybackRows, "Shortest key press", "Very short notes are held at least this long so the game registers them.",
             5, 120, 5, () => s.MinHoldMs, v => { s.MinHoldMs = v; _player.Rebuild(); }, v => $"{v:0} ms");
+
+        AddSwitch(MiniRows, "Stick to Roblox", "Keep the mini player in the top-right corner of the Roblox window.",
+            () => s.MiniSnapToRoblox, v => s.MiniSnapToRoblox = v);
+        AddSlider(MiniRows, "Opacity", "How see-through the mini player is.",
+            40, 100, 5, () => s.MiniOpacity * 100, v => { s.MiniOpacity = v / 100; if (_mini != null) _mini.Opacity = s.MiniOpacity; }, v => $"{v:0}%");
+        var open = new Button { Content = "Open mini player", Style = (Style)FindResource("PrimaryButton"), HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 10, 0, 0) };
+        open.Click += (_, _) => EnterMiniMode();
+        MiniRows.Children.Add(open);
 
         var h = s.Hotkeys;
         void Hotkey(string title, Func<string> get, Action<string> set) =>
@@ -638,6 +796,7 @@ public partial class MainWindow : Window
         Hotkey("Speed up", () => h.SpeedUp, v => h.SpeedUp = v);
         Hotkey("Next song", () => h.NextSong, v => h.NextSong = v);
         Hotkey("Toggle humanize", () => h.ToggleHumanize, v => h.ToggleHumanize = v);
+        Hotkey("Mini player", () => h.ToggleMini, v => h.ToggleMini = v);
     }
 
     private Grid Row(Panel host, string title, string? description)
@@ -676,7 +835,7 @@ public partial class MainWindow : Window
     private void AddCombo(Panel host, string title, string? description, string[] items, Func<int> get, Action<int> set)
     {
         var grid = Row(host, title, description);
-        var combo = new ComboBox { ItemsSource = items, MinWidth = 220, VerticalAlignment = VerticalAlignment.Center };
+        var combo = new ComboBox { ItemsSource = items, MinWidth = 240, VerticalAlignment = VerticalAlignment.Center };
         Grid.SetColumn(combo, 1);
         grid.Children.Add(combo);
         combo.SelectionChanged += (_, _) =>

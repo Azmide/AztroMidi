@@ -32,6 +32,10 @@ public sealed class Player : IDisposable
     private int _lastVelocityBucket = -1;
     private bool _sustainHeld;
     private bool _focusLost;
+    private readonly KeyboardOutput _keyboard = new();
+    private readonly BackgroundOutput _background = new();
+    private readonly PreviewOutput _preview = new();
+    private INoteOutput _output;
 
     public AppSettings Settings { get; }
     public MidiFile? Song { get; private set; }
@@ -53,8 +57,59 @@ public sealed class Player : IDisposable
     public Player(AppSettings settings)
     {
         Settings = settings;
-        _thread = new Thread(Run) { IsBackground = true, Name = "AztroMidi Player", Priority = ThreadPriority.Highest };
+        _output = OutputFor(settings.Output);
+        _thread =new Thread(Run) { IsBackground = true, Name = "AztroMidi Player", Priority = ThreadPriority.Highest };
         _thread.Start();
+    }
+
+    private INoteOutput OutputFor(OutputMode mode) => mode switch
+    {
+        OutputMode.Background => _background,
+        OutputMode.Preview => _preview,
+        _ => _keyboard,
+    };
+
+    /// <summary>Switches where notes go, releasing anything held on the old output first.</summary>
+    public void SetOutput(OutputMode mode)
+    {
+        lock (_sync)
+        {
+            ReleaseAll();
+            if (_output == _preview && mode != OutputMode.Preview) _preview.Dispose();
+            Settings.Output = mode;
+            _output = OutputFor(mode);
+            _focusLost = false;
+        }
+        StateChanged?.Invoke();
+    }
+
+    /// <summary>
+    /// Keys coming up next, grouped into chords the way virtual piano sheets
+    /// write them, e.g. "t", "[tuo]".
+    /// </summary>
+    public List<string> Upcoming(int count)
+    {
+        var result = new List<string>(count);
+        lock (_sync)
+        {
+            int i = _index;
+            while (result.Count < count && i < _events.Count)
+            {
+                if (_events[i].Kind != EventKind.Down) { i++; continue; }
+                double t = _events[i].Time;
+                var keys = new List<string>();
+                while (i < _events.Count && _events[i].Time - t < 0.06)
+                {
+                    if (_events[i].Kind == EventKind.Down && KeyMapper.Lookup(_events[i].Pitch) is KeyStroke k)
+                        keys.Add(k.Display);
+                    i++;
+                }
+                keys = keys.Distinct().ToList();
+                if (keys.Count == 1) result.Add(keys[0]);
+                else if (keys.Count > 1) result.Add($"[{string.Concat(keys)}]");
+            }
+        }
+        return result;
     }
 
     public void Load(MidiFile song)
@@ -300,7 +355,7 @@ public sealed class Player : IDisposable
                     {
                         wait = 0.03;
                     }
-                    else if (Settings.OnlyWhenRobloxFocused && !WindowGuard.RobloxIsFocused())
+                    else if (!RobloxReady())
                     {
                         if (!_focusLost)
                         {
@@ -359,6 +414,14 @@ public sealed class Player : IDisposable
         }
     }
 
+    /// <summary>Whether notes can be delivered right now with the current output.</summary>
+    private bool RobloxReady() => Settings.Output switch
+    {
+        OutputMode.Preview => true,
+        OutputMode.Background => WindowGuard.FindRobloxWindow() != IntPtr.Zero,
+        _ => !Settings.OnlyWhenRobloxFocused || WindowGuard.RobloxIsFocused(),
+    };
+
     private void Fire(PlayEvent e)
     {
         switch (e.Kind)
@@ -366,18 +429,17 @@ public sealed class Player : IDisposable
             case EventKind.Down:
             {
                 if (KeyMapper.Lookup(e.Pitch) is not KeyStroke key) return;
-                if (_owner.ContainsKey(e.Pitch)) InputSender.Up(key.Vk);
+                if (_owner.ContainsKey(e.Pitch)) _output.NoteUp(e.Pitch, key);
                 if (Settings.VelocityKeys)
                 {
                     int bucket = KeyMapper.VelocityBucket(e.Velocity);
                     if (bucket != _lastVelocityBucket)
                     {
-                        var vk = KeyMapper.VelocityKey(e.Velocity);
-                        InputSender.Tap(vk.Vk, vk.Mods);
+                        _output.Velocity(KeyMapper.VelocityKey(e.Velocity));
                         _lastVelocityBucket = bucket;
                     }
                 }
-                InputSender.Down(key.Vk, key.Mods);
+                _output.NoteDown(e.Pitch, key, e.Velocity);
                 _owner[e.Pitch] = e.NoteId;
                 Active[e.Pitch] = true;
                 break;
@@ -385,17 +447,17 @@ public sealed class Player : IDisposable
             case EventKind.Up:
             {
                 if (!_owner.TryGetValue(e.Pitch, out var id) || id != e.NoteId) return;
-                if (KeyMapper.Lookup(e.Pitch) is KeyStroke key) InputSender.Up(key.Vk);
+                if (KeyMapper.Lookup(e.Pitch) is KeyStroke key) _output.NoteUp(e.Pitch, key);
                 _owner.Remove(e.Pitch);
                 Active[e.Pitch] = false;
                 break;
             }
             case EventKind.SustainDown when !_sustainHeld:
-                InputSender.Down(InputSender.VK_SPACE, Mods.None);
+                _output.Sustain(true);
                 _sustainHeld = true;
                 break;
             case EventKind.SustainUp when _sustainHeld:
-                InputSender.Up(InputSender.VK_SPACE);
+                _output.Sustain(false);
                 _sustainHeld = false;
                 break;
         }
@@ -405,16 +467,20 @@ public sealed class Player : IDisposable
     {
         foreach (var pitch in _owner.Keys)
         {
-            if (KeyMapper.Lookup(pitch) is KeyStroke key) InputSender.Up(key.Vk);
+            if (KeyMapper.Lookup(pitch) is KeyStroke key) _output.NoteUp(pitch, key);
             Active[pitch] = false;
         }
+        bool hadKeys = _owner.Count > 0;
         _owner.Clear();
         if (_sustainHeld)
         {
-            InputSender.Up(InputSender.VK_SPACE);
+            _output.Sustain(false);
             _sustainHeld = false;
+            hadKeys = true;
         }
-        InputSender.ReleaseModifiers();
+        // Only touch modifiers if we might have pressed them, so we never
+        // release a Shift/Ctrl the user is physically holding for no reason.
+        if (hadKeys || _lastVelocityBucket >= 0) _output.ReleaseModifiers();
         _lastVelocityBucket = -1;
         Array.Clear(Active);
     }
@@ -425,5 +491,6 @@ public sealed class Player : IDisposable
         _wake.Set();
         _thread.Join(500);
         lock (_sync) ReleaseAll();
+        _preview.Dispose();
     }
 }

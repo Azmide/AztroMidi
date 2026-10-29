@@ -57,6 +57,7 @@
                     </StackPanel>
 
                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button x:Name="MiniButton" Style="{StaticResource IconButton}" Content="&#xE8A7;" ToolTip="Mini player over Roblox (F7)" Click="OnMini"/>
                         <Button x:Name="PinButton" Style="{StaticResource IconButton}" Content="&#xE718;" ToolTip="Always on top" Click="OnPin"/>
                         <Button Style="{StaticResource IconButton}" Content="&#xE921;" ToolTip="Minimize" Click="OnMinimize"/>
                         <Button x:Name="MaxButton" Style="{StaticResource IconButton}" Content="&#xE922;" ToolTip="Maximize" Click="OnMaximize"/>
@@ -84,6 +85,7 @@
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
                         <Grid Margin="2,0,0,10">
@@ -97,18 +99,41 @@
                                 <Button Style="{StaticResource IconButton}" Content="&#xE72C;" ToolTip="Refresh" Click="OnRefreshLibrary"/>
                             </StackPanel>
                         </Grid>
-                        <TextBox x:Name="SearchBox" Grid.Row="1" Tag="Search songs..." TextChanged="OnSearch" Margin="0,0,0,10"/>
-                        <ListBox x:Name="SongList" Grid.Row="2" SelectionChanged="OnSongSelected" MouseDoubleClick="OnSongDoubleClick">
+                        <TextBox x:Name="SearchBox" Grid.Row="1" Tag="Search songs..." TextChanged="OnSearch" Margin="0,0,0,8"/>
+                        <Grid Grid.Row="2" Margin="0,0,0,8">
+                            <Border Background="{StaticResource Surface2}" CornerRadius="10" Padding="3" HorizontalAlignment="Left">
+                                <StackPanel Orientation="Horizontal">
+                                    <RadioButton x:Name="FilterAll" Style="{StaticResource Segment}" Content="All songs" GroupName="Filter" IsChecked="True" Checked="OnFilterChanged"/>
+                                    <RadioButton x:Name="FilterFav" Style="{StaticResource Segment}" GroupName="Filter" Checked="OnFilterChanged">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="&#xE735;" FontFamily="Segoe MDL2 Assets" FontSize="10" VerticalAlignment="Center"/>
+                                            <TextBlock Text="Favorites" Margin="5,0,0,0"/>
+                                        </StackPanel>
+                                    </RadioButton>
+                                </StackPanel>
+                            </Border>
+                            <TextBlock x:Name="CountText" Style="{StaticResource Caption}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        </Grid>
+                        <ListBox x:Name="SongList" Grid.Row="3" SelectionChanged="OnSongSelected" MouseDoubleClick="OnSongDoubleClick">
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
-                                    <StackPanel>
-                                        <TextBlock Text="{Binding Name}" FontSize="12.5" FontWeight="Medium" TextTrimming="CharacterEllipsis"/>
-                                        <TextBlock Text="{Binding Folder}" FontSize="10.5" Foreground="{StaticResource InkFaint}" TextTrimming="CharacterEllipsis"/>
-                                    </StackPanel>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Name}" FontSize="12.5" FontWeight="Medium" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{Binding Folder}" FontSize="10.5" Foreground="{StaticResource InkFaint}" TextTrimming="CharacterEllipsis"/>
+                                        </StackPanel>
+                                        <Button Grid.Column="1" Style="{StaticResource IconButton}" Width="26" Height="26" FontSize="12"
+                                                Content="{Binding StarGlyph}" Foreground="{Binding StarBrush}" Tag="{Binding}"
+                                                ToolTip="Favorite" Click="OnToggleFavorite"/>
+                                    </Grid>
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
                         </ListBox>
-                        <StackPanel x:Name="LibraryEmpty" Grid.Row="2" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="10">
+                        <StackPanel x:Name="LibraryEmpty" Grid.Row="3" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="10">
                             <TextBlock Text="&#xE8D6;" FontFamily="Segoe MDL2 Assets" FontSize="30" Foreground="{StaticResource Surface3}" HorizontalAlignment="Center"/>
                             <TextBlock Style="{StaticResource Muted}" TextAlignment="Center" Margin="0,10,0,0"
                                        Text="Pick a songs folder or drop .mid files anywhere on this window."/>
@@ -135,6 +160,19 @@
                                     </StackPanel>
                                 </Border>
                                 <TextBlock Style="{StaticResource Caption}" Text="NOW PLAYING" Margin="12,0,0,0" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,-30,0,0">
+                                <TextBlock Style="{StaticResource Caption}" Text="SEND TO" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <Border x:Name="OutputHint" Background="{StaticResource Surface2}" CornerRadius="10" Padding="3">
+                                    <StackPanel Orientation="Horizontal">
+                                        <RadioButton x:Name="OutKeyboard" Style="{StaticResource Segment}" Content="Roblox" GroupName="Out" Checked="OnOutputChanged"
+                                                     ToolTip="Real key presses. Roblox has to be the focused window."/>
+                                        <RadioButton x:Name="OutBackground" Style="{StaticResource Segment}" Content="Background" GroupName="Out" Checked="OnOutputChanged"
+                                                     ToolTip="Experimental: sends keys straight to the Roblox window, even while you use other apps."/>
+                                        <RadioButton x:Name="OutPreview" Style="{StaticResource Segment}" Content="Preview" GroupName="Out" Checked="OnOutputChanged"
+                                                     ToolTip="Listen to the song on this PC. Nothing is sent to Roblox."/>
+                                    </StackPanel>
+                                </Border>
                             </StackPanel>
                             <TextBlock x:Name="SongTitle" Style="{StaticResource H1}" Text="No song loaded" Margin="0,12,0,2"/>
                             <TextBlock x:Name="SongMeta" Style="{StaticResource Muted}" Text="Choose a song from the library to get started."/>
@@ -173,6 +211,11 @@
                                     <Button Height="40" Width="44" Margin="8,0,0,0" ToolTip="Next song" Click="OnNext">
                                         <TextBlock Text="&#xE893;" FontFamily="Segoe MDL2 Assets" FontSize="13"/>
                                     </Button>
+                                    <Border Width="1" Height="24" Background="{StaticResource Line}" Margin="12,0,4,0"/>
+                                    <ToggleButton x:Name="QuickLoop" Style="{StaticResource IconToggle}" Height="40" Width="44" Margin="8,0,0,0"
+                                                  Content="&#xE8ED;" ToolTip="Loop this song" Checked="OnQuickToggle" Unchecked="OnQuickToggle"/>
+                                    <ToggleButton x:Name="QuickAutoNext" Style="{StaticResource IconToggle}" Height="40" Width="44" Margin="8,0,0,0"
+                                                  Content="&#xE8EE;" ToolTip="Auto-play the next song" Checked="OnQuickToggle" Unchecked="OnQuickToggle"/>
                                 </StackPanel>
                                 <StackPanel Grid.Column="2" Width="230" VerticalAlignment="Center">
                                     <Grid>
@@ -223,16 +266,8 @@
                                         </StackPanel>
                                     </Border>
 
-                                    <CheckBox x:Name="QuickHumanize" Style="{StaticResource Switch}" Content="Humanize" Margin="0,0,0,8"
-                                              Checked="OnQuickHumanize" Unchecked="OnQuickHumanize"/>
-                                    <CheckBox x:Name="QuickLoop" Style="{StaticResource Switch}" Content="Loop song" Margin="0,0,0,8"
-                                              Checked="OnQuickToggle" Unchecked="OnQuickToggle"/>
-                                    <CheckBox x:Name="QuickAutoNext" Style="{StaticResource Switch}" Content="Auto-play next" Margin="0,0,0,8"
-                                              Checked="OnQuickToggle" Unchecked="OnQuickToggle"/>
-                                    <CheckBox x:Name="QuickGuard" Style="{StaticResource Switch}" Content="Only play in Roblox"
-                                              ToolTip="Pauses key presses while another window is focused"
-                                              Checked="OnQuickToggle" Unchecked="OnQuickToggle"/>
-                                </StackPanel>
+                                    <CheckBox x:Name="QuickHumanize" Style="{StaticResource Switch}" Content="Humanize" Margin="0,0,0,12"
+                                              Checked="OnQuickHumanize" Unchecked="OnQuickHumanize"/>                                </StackPanel>
                             </ScrollViewer>
                         </Border>
 
@@ -282,7 +317,11 @@
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
                         <Grid Margin="2,0,2,6">
-                            <TextBlock Style="{StaticResource Caption}" Text="KEYBOARD"/>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource Caption}" Text="KEYBOARD" VerticalAlignment="Center"/>
+                                <TextBlock Style="{StaticResource Caption}" Text="NEXT" Margin="18,0,8,0" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="NextKeysText" FontFamily="Consolas" FontSize="12.5" VerticalAlignment="Center"/>
+                            </StackPanel>
                             <TextBlock x:Name="KeyHint" Style="{StaticResource Caption}" HorizontalAlignment="Right"
                                        Text="Grey keys use Ctrl (88-key mode)"/>
                         </Grid>
@@ -323,6 +362,14 @@
                             <TextBlock Style="{StaticResource H1}" Text="Playback"/>
                             <TextBlock Style="{StaticResource Muted}" Margin="0,4,0,8" Text="How notes are turned into key presses for the Roblox piano."/>
                             <StackPanel x:Name="PlaybackRows"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource Card}" Padding="22" Margin="0,16,0,0">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource H1}" Text="Mini player"/>
+                            <TextBlock Style="{StaticResource Muted}" Margin="0,4,0,8"
+                                       Text="A small controller that floats over the corner of Roblox. Clicking it never steals focus from the game."/>
+                            <StackPanel x:Name="MiniRows"/>
                         </StackPanel>
                     </Border>
                     <Border Style="{StaticResource Card}" Padding="22" Margin="0,16,0,0">

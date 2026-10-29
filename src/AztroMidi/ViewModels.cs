@@ -1,13 +1,34 @@
 using System.ComponentModel;
 using System.IO;
+using System.Windows;
+using System.Windows.Media;
 
 namespace AztroMidi;
 
-public sealed class SongEntry
+public sealed class SongEntry : INotifyPropertyChanged
 {
+    private bool _favorite;
+
     public required string Path { get; init; }
     public string Name => System.IO.Path.GetFileNameWithoutExtension(Path);
     public string Folder { get; init; } = "";
+
+    public bool IsFavorite
+    {
+        get => _favorite;
+        set
+        {
+            if (_favorite == value) return;
+            _favorite = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(StarGlyph)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(StarBrush)));
+        }
+    }
+
+    public string StarGlyph => _favorite ? "" : "";
+    public Brush StarBrush => (Brush)Application.Current.FindResource(_favorite ? "Warning" : "InkFaint");
+
+    public event PropertyChangedEventHandler? PropertyChanged;
 
     public static SongEntry From(string path, string? root)
     {

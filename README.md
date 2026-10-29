@@ -24,6 +24,19 @@ Windows 10/11 · C# / WPF · ~350 KB · no dependencies
 - Track list with enable / disable, **Solo**, and drum tracks skipped automatically
 - Loop song and auto-play next
 
+**Where the notes go** (Send to)
+| Mode | What it does |
+|---|---|
+| Roblox | Real key presses. Roblox must be the focused window (safest, works everywhere) |
+| Background *(experimental)* | Sends key messages straight to the Roblox window, so it keeps playing while you use other apps. Some games may ignore input while unfocused |
+| Preview | Plays the song through your PC speakers to check it before playing in-game |
+
+**Mini player**
+- A small controller that floats in the **top-right corner of the Roblox window** and follows it
+- Clicking it never takes focus away from Roblox, so playback keeps going into the game
+- Shows the status, progress, speed and the **next keys** to press (virtual piano sheet style, e.g. `t [tuo] y`)
+- Drag it anywhere to unstick it, adjustable opacity, toggle with **F7**
+
 **Humanize** (so it sounds played, not robotic)
 | Setting | What it does |
 |---|---|
@@ -39,7 +52,9 @@ Presets: **Off, Subtle, Natural, Expressive, Sloppy**.
 
 **Quality of life**
 - Song library with search, subfolders, and drag & drop of files or folders
-- Live piano visualizer that shows which key is pressed and its keyboard label
+- Live piano visualizer that shows which key is pressed and its keyboard label, plus upcoming keys
+- **Favorites** with a star on each song, and the last song is reopened on start
+- Fits small screens such as 1366×768 laptops
 - Global hotkeys that work inside Roblox (configurable)
 - **Only play while Roblox is focused**, so keys never end up typed into Discord or your browser
 - Countdown before playing, always-on-top mode
@@ -54,6 +69,7 @@ Presets: **Off, Subtle, Natural, Expressive, Sloppy**.
 | F3 / F4 | Slow down / Speed up |
 | F5 | Next song |
 | F6 | Toggle humanize |
+| F7 | Mini player |
 
 ## Getting started
 
@@ -61,7 +77,7 @@ Presets: **Off, Subtle, Natural, Expressive, Sloppy**.
 2. Put your MIDI files in a folder, then click the folder icon in **Library** and pick it.
    You can also create a `songs` folder next to the exe; it is loaded automatically.
 3. Pick a song, join a Roblox game with a piano and sit at it.
-4. Click into Roblox and press **F1**.
+4. Click into Roblox and press **F1**. Press **F7** for the mini player in the corner of the game.
 
 > Roblox pianos use Shift for black keys. If Shift Lock is on in the game, turn it off
 > in Roblox settings or some notes may not play.
@@ -87,11 +103,13 @@ src/AztroMidi/
 │   ├── Humanizer.cs       Human-like timing, chord rolls, tempo drift, slips
 │   ├── Player.cs          High-precision playback thread
 │   ├── InputSender.cs     Scan-code keyboard input via SendInput
+│   ├── Outputs.cs         Roblox / background / preview outputs
 │   ├── HotkeyManager.cs   Global hotkeys
 │   ├── WindowGuard.cs     Checks that Roblox is the focused window
 │   └── AppSettings.cs     JSON settings
 ├── Controls/PianoView.cs  Piano visualizer
 ├── Themes/Theme.xaml      Dark / blue theme
+├── MiniPlayer.xaml(.cs)   Floating mini player over Roblox
 └── MainWindow.xaml(.cs)   UI
 ```
 

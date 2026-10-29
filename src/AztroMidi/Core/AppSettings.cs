@@ -33,6 +33,7 @@ public sealed class HotkeySettings
     public string SpeedUp { get; set; } = "F4";
     public string NextSong { get; set; } = "F5";
     public string ToggleHumanize { get; set; } = "F6";
+    public string ToggleMini { get; set; } = "F7";
 }
 
 public sealed class AppSettings
@@ -44,6 +45,8 @@ public sealed class AppSettings
     public OutOfRange OutOfRange { get; set; } = OutOfRange.Fold;
     [JsonConverter(typeof(JsonStringEnumConverter))]
     public SustainMode Sustain { get; set; } = SustainMode.Off;
+    [JsonConverter(typeof(JsonStringEnumConverter))]
+    public OutputMode Output { get; set; } = OutputMode.Keyboard;
     public bool VelocityKeys { get; set; }
     public bool AutoTranspose { get; set; } = true;
     public bool SkipDrums { get; set; } = true;
@@ -55,10 +58,20 @@ public sealed class AppSettings
     public double Speed { get; set; } = 1.0;
     public double MinHoldMs { get; set; } = 25;
     public double MaxHoldMs { get; set; } = 4000;
+    public string LastSong { get; set; } = "";
+    public List<string> Favorites { get; set; } = new();
+    public bool MiniSnapToRoblox { get; set; } = true;
+    public double MiniOpacity { get; set; } = 0.94;
+    public double MiniLeft { get; set; } = double.NaN;
+    public double MiniTop { get; set; } = double.NaN;
     public HumanizeSettings Humanize { get; set; } = new();
     public HotkeySettings Hotkeys { get; set; } = new();
 
-    private static readonly JsonSerializerOptions Json = new() { WriteIndented = true };
+    private static readonly JsonSerializerOptions Json = new()
+    {
+        WriteIndented = true,
+        NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals,
+    };
 
     /// <summary>
     /// Settings live next to the exe so the app stays portable and does not
