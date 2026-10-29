@@ -162,6 +162,9 @@
                                 <TextBlock Style="{StaticResource Caption}" Text="NOW PLAYING" Margin="12,0,0,0" VerticalAlignment="Center"/>
                             </StackPanel>
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,-30,0,0">
+                                <Button x:Name="TestBgButton" Content="Test" Padding="12,5" FontSize="11.5" Margin="0,0,8,0" Visibility="Collapsed"
+                                        ToolTip="Play a short scale into Roblox in the background to see if your game accepts it"
+                                        Click="OnTestBackground"/>
                                 <TextBlock Style="{StaticResource Caption}" Text="SEND TO" VerticalAlignment="Center" Margin="0,0,8,0"/>
                                 <Border x:Name="OutputHint" Background="{StaticResource Surface2}" CornerRadius="10" Padding="3">
                                     <StackPanel Orientation="Horizontal">

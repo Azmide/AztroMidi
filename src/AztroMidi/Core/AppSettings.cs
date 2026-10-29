@@ -51,6 +51,7 @@ public sealed class AppSettings
     public bool AutoTranspose { get; set; } = true;
     public bool SkipDrums { get; set; } = true;
     public bool OnlyWhenRobloxFocused { get; set; } = true;
+    public bool AutoFocusRoblox { get; set; } = true;
     public bool AlwaysOnTop { get; set; }
     public bool Loop { get; set; }
     public bool AutoNext { get; set; }

@@ -260,6 +260,7 @@ public sealed class Player : IDisposable
             {
                 State = PlayState.Playing;
             }
+            if (_output is BackgroundOutput bg) bg.Prime();
         }
         _wake.Set();
         StateChanged?.Invoke();

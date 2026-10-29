@@ -71,6 +71,40 @@ public static class WindowGuard
         }
     }
 
+    [DllImport("user32.dll")] private static extern bool SetForegroundWindow(IntPtr hWnd);
+    [DllImport("user32.dll")] private static extern bool BringWindowToTop(IntPtr hWnd);
+    [DllImport("user32.dll")] private static extern bool ShowWindow(IntPtr hWnd, int cmd);
+    [DllImport("user32.dll")] private static extern bool AttachThreadInput(uint idAttach, uint idAttachTo, bool attach);
+    [DllImport("kernel32.dll")] private static extern uint GetCurrentThreadId();
+
+    /// <summary>
+    /// Brings the Roblox window to the front and gives it keyboard focus.
+    /// Returns true when Roblox ends up focused.
+    /// </summary>
+    public static bool FocusRoblox()
+    {
+        var h = FindRobloxWindow();
+        if (h == IntPtr.Zero) return false;
+        if (IsIconic(h)) ShowWindow(h, 9); // SW_RESTORE
+
+        // Windows only lets the foreground thread hand focus to another window,
+        // so briefly share input state with whoever is in front right now.
+        var fg = GetForegroundWindow();
+        uint fgThread = GetWindowThreadProcessId(fg, out _);
+        uint me = GetCurrentThreadId();
+        bool attached = fgThread != 0 && fgThread != me && AttachThreadInput(me, fgThread, true);
+        try
+        {
+            BringWindowToTop(h);
+            SetForegroundWindow(h);
+        }
+        finally
+        {
+            if (attached) AttachThreadInput(me, fgThread, false);
+        }
+        return GetForegroundWindow() == h;
+    }
+
     [DllImport("user32.dll")] private static extern bool GetClientRect(IntPtr hWnd, out RECT rect);
     [DllImport("user32.dll")] private static extern bool ClientToScreen(IntPtr hWnd, ref POINT pt);
 

@@ -338,6 +338,7 @@ public partial class MainWindow : Window
 
         _current = song;
         _settings.LastSong = song.Path;
+        _settings.Save(); // survive a crash or a killed process
         _player.Load(midi);
 
         _syncing = true;
@@ -354,7 +355,8 @@ public partial class MainWindow : Window
         ShowHint(_settings.Output switch
         {
             OutputMode.Preview => "Loaded. Press Play to listen on this PC.",
-            OutputMode.Background => $"Loaded. Press {_settings.Hotkeys.PlayPause} to play into Roblox, even from other apps.",
+            OutputMode.Background => "Loaded. Background mode is experimental: press Test first to check it works in your game.",
+            _ when _settings.AutoFocusRoblox => $"Loaded. Press Play (AztroMidi switches to Roblox for you) or {_settings.Hotkeys.PlayPause} inside the game.",
             _ when _settings.OnlyWhenRobloxFocused => $"Loaded. Press {_settings.Hotkeys.PlayPause} inside Roblox to start playing.",
             _ => $"Loaded. Press Play, then click into Roblox within {_settings.CountdownSeconds}s.",
         });
@@ -444,6 +446,57 @@ public partial class MainWindow : Window
             if (_player.Song == null) return;
         }
         _player.TogglePlay();
+
+        // In Roblox mode, pressing Play from this app jumps straight into the game.
+        if (IsPlaying() && _settings.Output == OutputMode.Keyboard && _settings.AutoFocusRoblox && !WindowGuard.RobloxIsFocused())
+        {
+            if (WindowGuard.FocusRoblox()) ShowHint("Switched to Roblox. Playing as soon as the countdown ends.");
+            else if (WindowGuard.FindRobloxWindow() == IntPtr.Zero) ShowHint("Roblox is not running. Open the game and sit at a piano first.");
+            else ShowHint("Could not switch to Roblox automatically. Click into the game to start.");
+        }
+    }
+
+    private bool _testing;
+
+    /// <summary>
+    /// Plays a short C major scale into Roblox using background mode while this
+    /// app has focus, so the user can see right away whether their Roblox accepts it.
+    /// </summary>
+    private async void OnTestBackground(object sender, RoutedEventArgs e)
+    {
+        if (_testing) return;
+        if (WindowGuard.FindRobloxWindow() == IntPtr.Zero)
+        {
+            ShowHint("Open Roblox and sit at a piano first, then press Test again.");
+            return;
+        }
+        _testing = true;
+        if (IsPlaying()) _player.Pause();
+        try
+        {
+            ShowHint("Testing: playing a scale into Roblox in the background. Listen to the game...");
+            var bg = new BackgroundOutput();
+            await Task.Run(() =>
+            {
+                bg.Prime();
+                Thread.Sleep(150);
+                foreach (int pitch in new[] { 60, 62, 64, 65, 67, 69, 71, 72 })
+                {
+                    if (KeyMapper.Lookup(pitch) is not KeyStroke key) continue;
+                    bg.NoteDown(pitch, key, 100);
+                    Thread.Sleep(170);
+                    bg.NoteUp(pitch, key);
+                    Thread.Sleep(50);
+                }
+                bg.ReleaseModifiers();
+            });
+            ShowHint("Test done. Heard the scale in Roblox? Background mode works for you. " +
+                     "No sound? Your Roblox ignores background input: use Roblox mode, it switches to the game for you.");
+        }
+        finally
+        {
+            _testing = false;
+        }
     }
 
     private void OnStop(object sender, RoutedEventArgs e) => _player.Stop();
@@ -543,9 +596,9 @@ public partial class MainWindow : Window
 
     private static string OutputDescription(OutputMode mode) => mode switch
     {
-        OutputMode.Background => "Experimental. Keeps playing into Roblox while you use other apps.",
+        OutputMode.Background => "Experimental. Tries to keep playing into Roblox while you use other apps. Press Test to check.",
         OutputMode.Preview => "Plays through your PC speakers. Nothing goes to Roblox.",
-        _ => "Real key presses. Click into Roblox before playing.",
+        _ => "Real key presses. Pressing Play here switches to Roblox for you.",
     };
 
     // ------------------------------------------------------------------ hotkeys
@@ -691,6 +744,7 @@ public partial class MainWindow : Window
         OutBackground.IsChecked = _settings.Output == OutputMode.Background;
         OutPreview.IsChecked = _settings.Output == OutputMode.Preview;
         OutputHint.ToolTip = OutputDescription(_settings.Output);
+        TestBgButton.Visibility = _settings.Output == OutputMode.Background ? Visibility.Visible : Visibility.Collapsed;
         foreach (var r in _refreshers) r();
         _syncing = false;
     }
@@ -768,6 +822,8 @@ public partial class MainWindow : Window
             () => s.AutoTranspose, v => s.AutoTranspose = v);
         AddSwitch(PlaybackRows, "Skip drum tracks", "Ignore MIDI channel 10 (percussion) which sounds wrong on a piano.",
             () => s.SkipDrums, v => { s.SkipDrums = v; _player.Rebuild(); });
+        AddSwitch(PlaybackRows, "Switch to Roblox on Play", "In Roblox mode, pressing Play in AztroMidi brings the game to the front automatically.",
+            () => s.AutoFocusRoblox, v => s.AutoFocusRoblox = v);
         AddSwitch(PlaybackRows, "Only play while Roblox is focused", "In Roblox mode, stop key presses from going into other apps.",
             () => s.OnlyWhenRobloxFocused, v => s.OnlyWhenRobloxFocused = v);
         AddSwitch(PlaybackRows, "Always on top", "Keep AztroMidi above the game window.",

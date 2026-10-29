@@ -39,9 +39,11 @@ public sealed class KeyboardOutput : INoteOutput
 }
 
 /// <summary>
-/// Posts WM_KEYDOWN / WM_KEYUP to the Roblox window so it keeps receiving notes
-/// while you use other apps. Experimental: works as long as the game accepts
-/// window messages without focus.
+/// Gets notes into Roblox while another app is focused. When Roblox happens to
+/// be focused it simply uses real key presses. Otherwise it first tells the
+/// Roblox window that it is active (Roblox drops input while it thinks it is
+/// in the background) and then posts WM_KEYDOWN / WM_KEYUP to it.
+/// Experimental: some Roblox builds still ignore this.
 /// </summary>
 public sealed class BackgroundOutput : INoteOutput
 {
@@ -50,8 +52,33 @@ public sealed class BackgroundOutput : INoteOutput
 
     private const uint WM_KEYDOWN = 0x0100, WM_KEYUP = 0x0101;
     private const uint WM_SYSKEYDOWN = 0x0104, WM_SYSKEYUP = 0x0105;
+    private const uint WM_SETFOCUS = 0x0007, WM_ACTIVATE = 0x0006, WM_ACTIVATEAPP = 0x001C, WM_NCACTIVATE = 0x0086;
+
+    private readonly KeyboardOutput _keyboard = new();
+    private long _lastWake;
 
     private static IntPtr Target => WindowGuard.FindRobloxWindow();
+
+    /// <summary>Re-sends the "you are active" messages at most every 400 ms.</summary>
+    private void Wake()
+    {
+        long now = Environment.TickCount64;
+        if (now - _lastWake < 400) return;
+        _lastWake = now;
+        var h = Target;
+        if (h == IntPtr.Zero) return;
+        PostMessage(h, WM_ACTIVATEAPP, (IntPtr)1, IntPtr.Zero);
+        PostMessage(h, WM_NCACTIVATE, (IntPtr)1, IntPtr.Zero);
+        PostMessage(h, WM_ACTIVATE, (IntPtr)1, IntPtr.Zero); // WA_ACTIVE
+        PostMessage(h, WM_SETFOCUS, IntPtr.Zero, IntPtr.Zero);
+    }
+
+    /// <summary>Called once when playback starts so the first note is not lost.</summary>
+    public void Prime()
+    {
+        _lastWake = 0;
+        Wake();
+    }
 
     private static IntPtr LParam(ushort vk, bool up)
     {
@@ -83,24 +110,42 @@ public sealed class BackgroundOutput : INoteOutput
 
     public void NoteDown(int pitch, KeyStroke key, int velocity)
     {
+        if (WindowGuard.RobloxIsFocused()) { _keyboard.NoteDown(pitch, key, velocity); return; }
+        Wake();
         ModsDown(key.Mods);
         Post(WM_KEYDOWN, key.Vk, false);
         ModsUp(key.Mods);
     }
 
-    public void NoteUp(int pitch, KeyStroke key) => Post(WM_KEYUP, key.Vk, true);
+    public void NoteUp(int pitch, KeyStroke key)
+    {
+        // Release both ways: the key may have been pressed while Roblox was focused.
+        if (WindowGuard.RobloxIsFocused()) _keyboard.NoteUp(pitch, key);
+        Post(WM_KEYUP, key.Vk, true);
+    }
 
     public void Velocity(KeyStroke k)
     {
+        if (WindowGuard.RobloxIsFocused()) { _keyboard.Velocity(k); return; }
+        Wake();
         ModsDown(k.Mods);
         Post(WM_SYSKEYDOWN, k.Vk, false);
         Post(WM_SYSKEYUP, k.Vk, true);
         ModsUp(k.Mods);
     }
 
-    public void Sustain(bool down) => Post(down ? WM_KEYDOWN : WM_KEYUP, InputSender.VK_SPACE, !down);
+    public void Sustain(bool down)
+    {
+        if (WindowGuard.RobloxIsFocused()) { _keyboard.Sustain(down); return; }
+        Wake();
+        Post(down ? WM_KEYDOWN : WM_KEYUP, InputSender.VK_SPACE, !down);
+    }
 
-    public void ReleaseModifiers() => ModsUp(Mods.Shift | Mods.Ctrl | Mods.Alt);
+    public void ReleaseModifiers()
+    {
+        if (WindowGuard.RobloxIsFocused()) _keyboard.ReleaseModifiers();
+        ModsUp(Mods.Shift | Mods.Ctrl | Mods.Alt);
+    }
 }
 
 /// <summary>Plays notes through the Windows MIDI synth so songs can be checked without Roblox.</summary>
