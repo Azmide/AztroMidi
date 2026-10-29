@@ -94,7 +94,7 @@
                                 <TextBlock x:Name="LibraryInfo" Style="{StaticResource Muted}" Text="No folder selected" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
                             </StackPanel>
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
-                                <Button Style="{StaticResource IconButton}" Content="&#xE8B7;" ToolTip="Choose songs folder" Click="OnPickFolder"/>
+                                <Button Style="{StaticResource IconButton}" Content="&#xE838;" ToolTip="Choose songs folder" Click="OnPickFolder"/>
                                 <Button Style="{StaticResource IconButton}" Content="&#xE8E5;" ToolTip="Open a MIDI file" Click="OnOpenFile"/>
                                 <Button Style="{StaticResource IconButton}" Content="&#xE72C;" ToolTip="Refresh" Click="OnRefreshLibrary"/>
                             </StackPanel>
@@ -119,14 +119,19 @@
                                 <DataTemplate>
                                     <Grid>
                                         <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
-                                        <StackPanel>
+                                        <Border Width="32" Height="32" CornerRadius="9" Background="{Binding TileBrush}" Margin="0,0,10,0">
+                                            <TextBlock Text="{Binding TileGlyph}" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="{Binding TileInk}"
+                                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                             <TextBlock Text="{Binding Name}" FontSize="12.5" FontWeight="Medium" TextTrimming="CharacterEllipsis"/>
                                             <TextBlock Text="{Binding Folder}" FontSize="10.5" Foreground="{StaticResource InkFaint}" TextTrimming="CharacterEllipsis"/>
                                         </StackPanel>
-                                        <Button Grid.Column="1" Style="{StaticResource IconButton}" Width="26" Height="26" FontSize="12"
+                                        <Button Grid.Column="2" Style="{StaticResource IconButton}" Width="26" Height="26" FontSize="12"
                                                 Content="{Binding StarGlyph}" Foreground="{Binding StarBrush}" Tag="{Binding}"
                                                 ToolTip="Favorite" Click="OnToggleFavorite"/>
                                     </Grid>
@@ -162,23 +167,36 @@
                                 <TextBlock Style="{StaticResource Caption}" Text="NOW PLAYING" Margin="12,0,0,0" VerticalAlignment="Center"/>
                             </StackPanel>
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,-30,0,0">
-                                <Button x:Name="TestBgButton" Content="Test" Padding="12,5" FontSize="11.5" Margin="0,0,8,0" Visibility="Collapsed"
-                                        ToolTip="Play a short scale into Roblox in the background to see if your game accepts it"
-                                        Click="OnTestBackground"/>
                                 <TextBlock Style="{StaticResource Caption}" Text="SEND TO" VerticalAlignment="Center" Margin="0,0,8,0"/>
                                 <Border x:Name="OutputHint" Background="{StaticResource Surface2}" CornerRadius="10" Padding="3">
                                     <StackPanel Orientation="Horizontal">
                                         <RadioButton x:Name="OutKeyboard" Style="{StaticResource Segment}" Content="Roblox" GroupName="Out" Checked="OnOutputChanged"
-                                                     ToolTip="Real key presses. Roblox has to be the focused window."/>
-                                        <RadioButton x:Name="OutBackground" Style="{StaticResource Segment}" Content="Background" GroupName="Out" Checked="OnOutputChanged"
-                                                     ToolTip="Experimental: sends keys straight to the Roblox window, even while you use other apps."/>
+                                                     ToolTip="Real key presses. Pressing Play switches to Roblox for you."/>
                                         <RadioButton x:Name="OutPreview" Style="{StaticResource Segment}" Content="Preview" GroupName="Out" Checked="OnOutputChanged"
                                                      ToolTip="Listen to the song on this PC. Nothing is sent to Roblox."/>
                                     </StackPanel>
                                 </Border>
                             </StackPanel>
-                            <TextBlock x:Name="SongTitle" Style="{StaticResource H1}" Text="No song loaded" Margin="0,12,0,2"/>
-                            <TextBlock x:Name="SongMeta" Style="{StaticResource Muted}" Text="Choose a song from the library to get started."/>
+                            <Grid Margin="0,14,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Border Width="56" Height="56" CornerRadius="14" Margin="0,0,14,0" Effect="{StaticResource BrandGlow}">
+                                    <Border.Background>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                            <GradientStop Color="#4FC8F2" Offset="0"/>
+                                            <GradientStop Color="#0A80AD" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Border.Background>
+                                    <TextBlock Text="&#xEC4F;" FontFamily="Segoe MDL2 Assets" FontSize="22" Foreground="White"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock x:Name="SongTitle" Style="{StaticResource H1}" Text="No song loaded" Margin="0,0,0,2"/>
+                                    <TextBlock x:Name="SongMeta" Style="{StaticResource Muted}" Text="Choose a song from the library to get started."/>
+                                </StackPanel>
+                            </Grid>
 
                             <Grid Margin="0,16,0,0">
                                 <Grid.ColumnDefinitions>
@@ -241,37 +259,34 @@
 
                         <!-- Quick controls -->
                         <Border Style="{StaticResource Card}">
-                            <ScrollViewer VerticalScrollBarVisibility="Auto">
-                                <StackPanel Margin="0,0,10,0">
-                                    <TextBlock Style="{StaticResource H2}" Text="Quick controls" Margin="0,0,0,10"/>
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource H2}" Text="Quick controls" Margin="0,0,0,12"/>
 
-                                    <TextBlock Style="{StaticResource Caption}" Text="TRANSPOSE"/>
-                                    <Grid Margin="0,6,0,12">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="36"/>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="36"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-                                        <Button Padding="0" Height="32" Content="−" FontSize="15" Click="OnTransposeDown"/>
-                                        <TextBlock x:Name="TransposeText" Grid.Column="1" Text="0" FontSize="15" FontWeight="Bold"
-                                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        <Button Grid.Column="2" Padding="0" Height="32" Content="+" FontSize="15" Click="OnTransposeUp"/>
-                                        <Button Grid.Column="3" Margin="8,0,0,0" Padding="12,0" Height="32" Content="Auto"
+                                <Grid Margin="0,0,0,12">
+                                    <TextBlock Style="{StaticResource Caption}" Text="TRANSPOSE" VerticalAlignment="Center"/>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                        <Button Padding="0" Width="30" Height="30" Content="−" FontSize="14" Click="OnTransposeDown"/>
+                                        <TextBlock x:Name="TransposeText" Text="0" Width="36" TextAlignment="Center" FontSize="14" FontWeight="Bold"
+                                                   Foreground="{StaticResource BrandMuted}" VerticalAlignment="Center"/>
+                                        <Button Padding="0" Width="30" Height="30" Content="+" FontSize="14" Click="OnTransposeUp"/>
+                                        <Button Margin="6,0,0,0" Padding="10,0" Height="30" Content="Auto" FontSize="11.5"
                                                 ToolTip="Find the key that fits the most notes on the Roblox piano" Click="OnTransposeAuto"/>
-                                    </Grid>
+                                    </StackPanel>
+                                </Grid>
 
-                                    <TextBlock Style="{StaticResource Caption}" Text="PIANO SIZE"/>
-                                    <Border Background="{StaticResource Surface2}" CornerRadius="10" Padding="3" Margin="0,6,0,12" HorizontalAlignment="Left">
+                                <Grid Margin="0,0,0,12">
+                                    <TextBlock Style="{StaticResource Caption}" Text="PIANO" VerticalAlignment="Center"/>
+                                    <Border Background="{StaticResource Surface2}" CornerRadius="10" Padding="3" HorizontalAlignment="Right">
                                         <StackPanel Orientation="Horizontal">
                                             <RadioButton x:Name="Layout61" Style="{StaticResource Segment}" Content="61 keys" GroupName="Layout" Checked="OnLayoutChanged"/>
                                             <RadioButton x:Name="Layout88" Style="{StaticResource Segment}" Content="88 keys" GroupName="Layout" Checked="OnLayoutChanged"/>
                                         </StackPanel>
                                     </Border>
+                                </Grid>
 
-                                    <CheckBox x:Name="QuickHumanize" Style="{StaticResource Switch}" Content="Humanize" Margin="0,0,0,12"
-                                              Checked="OnQuickHumanize" Unchecked="OnQuickHumanize"/>                                </StackPanel>
-                            </ScrollViewer>
+                                <CheckBox x:Name="QuickHumanize" Style="{StaticResource Switch}" Content="Humanize"
+                                          Checked="OnQuickHumanize" Unchecked="OnQuickHumanize"/>
+                            </StackPanel>
                         </Border>
 
                         <!-- Tracks -->
@@ -307,6 +322,11 @@
                                         </DataTemplate>
                                     </ListBox.ItemTemplate>
                                 </ListBox>
+                                <StackPanel x:Name="TracksEmpty" Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center">
+                                    <TextBlock Text="&#xE8FD;" FontFamily="Segoe MDL2 Assets" FontSize="24" Foreground="{StaticResource Surface3}" HorizontalAlignment="Center"/>
+                                    <TextBlock Style="{StaticResource Muted}" TextAlignment="Center" Margin="0,8,0,0"
+                                               Text="Tracks of the loaded song show up here."/>
+                                </StackPanel>
                             </Grid>
                         </Border>
                     </Grid>

@@ -108,7 +108,11 @@ public sealed class AppSettings
         {
             var path = FilePath;
             if (File.Exists(path))
-                return JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(path), Json) ?? new AppSettings();
+            {
+                var s = JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(path), Json) ?? new AppSettings();
+                if (s.Output == OutputMode.Background) s.Output = OutputMode.Keyboard; // removed in 1.3
+                return s;
+            }
         }
         catch { /* corrupted file: start fresh */ }
         return new AppSettings();

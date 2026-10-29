@@ -33,7 +33,6 @@ public sealed class Player : IDisposable
     private bool _sustainHeld;
     private bool _focusLost;
     private readonly KeyboardOutput _keyboard = new();
-    private readonly BackgroundOutput _background = new();
     private readonly PreviewOutput _preview = new();
     private INoteOutput _output;
 
@@ -58,13 +57,12 @@ public sealed class Player : IDisposable
     {
         Settings = settings;
         _output = OutputFor(settings.Output);
-        _thread =new Thread(Run) { IsBackground = true, Name = "AztroMidi Player", Priority = ThreadPriority.Highest };
+        _thread = new Thread(Run) { IsBackground = true, Name = "AztroMidi Player", Priority = ThreadPriority.Highest };
         _thread.Start();
     }
 
     private INoteOutput OutputFor(OutputMode mode) => mode switch
     {
-        OutputMode.Background => _background,
         OutputMode.Preview => _preview,
         _ => _keyboard,
     };
@@ -260,7 +258,6 @@ public sealed class Player : IDisposable
             {
                 State = PlayState.Playing;
             }
-            if (_output is BackgroundOutput bg) bg.Prime();
         }
         _wake.Set();
         StateChanged?.Invoke();
@@ -419,7 +416,6 @@ public sealed class Player : IDisposable
     private bool RobloxReady() => Settings.Output switch
     {
         OutputMode.Preview => true,
-        OutputMode.Background => WindowGuard.FindRobloxWindow() != IntPtr.Zero,
         _ => !Settings.OnlyWhenRobloxFocused || WindowGuard.RobloxIsFocused(),
     };
 

@@ -1,0 +1,83 @@
+name: Release
+
+# Push a tag like v1.3.0 and this builds the app and publishes a GitHub Release.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    env:
+      DOTNET_NOLOGO: 1
+      DOTNET_CLI_TELEMETRY_OPTOUT: 1
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Read version from tag
+        id: version
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}".TrimStart("v")
+          "version=$version" >> $env:GITHUB_OUTPUT
+
+      - name: Test
+        run: dotnet run --project tests/AztroMidi.Tests -c Release
+
+      - name: Publish (small, needs .NET 10 Desktop Runtime)
+        run: >
+          dotnet publish src/AztroMidi/AztroMidi.csproj -c Release -r win-x64 -o out/small
+          --self-contained false -p:PublishSingleFile=true
+          -p:Version=${{ steps.version.outputs.version }}
+
+      - name: Publish (standalone, runs on any Windows x64)
+        run: >
+          dotnet publish src/AztroMidi/AztroMidi.csproj -c Release -r win-x64 -o out/standalone
+          --self-contained true -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:Version=${{ steps.version.outputs.version }}
+
+      - name: Package
+        shell: pwsh
+        run: |
+          $v = "${{ steps.version.outputs.version }}"
+          New-Item -ItemType Directory -Force release | Out-Null
+          foreach ($kind in "small", "standalone") {
+            New-Item -ItemType Directory -Force "out/$kind/songs" | Out-Null
+            Copy-Item README.md, LICENSE "out/$kind/"
+          }
+          Compress-Archive -Path out/small/* -DestinationPath "release/AztroMidi-$v-win-x64.zip"
+          Compress-Archive -Path out/standalone/* -DestinationPath "release/AztroMidi-$v-win-x64-standalone.zip"
+          Copy-Item out/small/AztroMidi.exe "release/AztroMidi-$v.exe"
+
+      - name: Release notes from CHANGELOG.md
+        shell: pwsh
+        run: |
+          $v = "${{ steps.version.outputs.version }}"
+          $lines = Get-Content CHANGELOG.md
+          $start = ($lines | Select-String -Pattern "^## \[$([regex]::Escape($v))\]").LineNumber
+          if ($start) {
+            $rest = $lines[$start..($lines.Count - 1)]
+            $end = ($rest | Select-String -Pattern '^## \[').LineNumber | Select-Object -First 1
+            $notes = if ($end) { $rest[0..($end - 2)] } else { $rest }
+          } else {
+            $notes = @("See CHANGELOG.md for details.")
+          }
+          $notes += ""
+          $notes += "### Which download?"
+          $notes += "- **AztroMidi-$v.exe**: just the app (~400 KB). Needs the [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0)."
+          $notes += "- **AztroMidi-$v-win-x64-standalone.zip**: bigger, but runs on any Windows 10/11 x64 PC without installing anything."
+          $notes | Set-Content release-notes.md -Encoding utf8
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          name: AztroMidi ${{ steps.version.outputs.version }}
+          body_path: release-notes.md
+          files: release/*

@@ -1,0 +1,44 @@
+name: Bug report
+description: Something does not work the way it should
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for taking the time to report a bug! Please fill in as much as you can.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Load song "..."
+        2. Press F1 in Roblox
+        3. ...
+  - type: input
+    id: version
+    attributes:
+      label: AztroMidi version
+      description: Shown next to the logo, e.g. v1.3
+    validations:
+      required: true
+  - type: input
+    id: game
+    attributes:
+      label: Roblox game
+      description: Which piano game were you playing in?
+  - type: dropdown
+    id: layout
+    attributes:
+      label: Piano size
+      options: ["61 keys", "88 keys"]
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else?
+      description: Screenshots, the MIDI file (if you can share it), Windows version...

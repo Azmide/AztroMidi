@@ -319,7 +319,7 @@ public partial class MainWindow : Window
         if (SongList.SelectedItem is SongEntry s)
         {
             if (s.Path != _current?.Path) SelectSong(s);
-            _player.Play();
+            if (!IsPlaying()) TogglePlay();
         }
     }
 
@@ -336,7 +336,9 @@ public partial class MainWindow : Window
             return;
         }
 
+        if (_current != null) _current.IsCurrent = false;
         _current = song;
+        song.IsCurrent = true;
         _settings.LastSong = song.Path;
         _settings.Save(); // survive a crash or a killed process
         _player.Load(midi);
@@ -355,7 +357,6 @@ public partial class MainWindow : Window
         ShowHint(_settings.Output switch
         {
             OutputMode.Preview => "Loaded. Press Play to listen on this PC.",
-            OutputMode.Background => "Loaded. Background mode is experimental: press Test first to check it works in your game.",
             _ when _settings.AutoFocusRoblox => $"Loaded. Press Play (AztroMidi switches to Roblox for you) or {_settings.Hotkeys.PlayPause} inside the game.",
             _ when _settings.OnlyWhenRobloxFocused => $"Loaded. Press {_settings.Hotkeys.PlayPause} inside Roblox to start playing.",
             _ => $"Loaded. Press Play, then click into Roblox within {_settings.CountdownSeconds}s.",
@@ -405,6 +406,7 @@ public partial class MainWindow : Window
             t.Changed += OnTrackToggled;
         }
         TrackList.ItemsSource = _tracks;
+        TracksEmpty.Visibility = _tracks.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void OnTrackToggled(TrackItem item)
@@ -445,58 +447,27 @@ public partial class MainWindow : Window
             if (_songs.Count > 0) SelectSong((SongList.SelectedItem as SongEntry) ?? VisibleSongs().FirstOrDefault() ?? _songs[0]);
             if (_player.Song == null) return;
         }
+        // Song is waiting because another app has focus: jump back instead of pausing.
+        if (_player.State == PlayState.Playing && _player.WaitingForFocus)
+        {
+            if (WindowGuard.FocusRoblox()) { ShowHint("Back in Roblox. Playback continues."); return; }
+            _player.Pause();
+            return;
+        }
+
         _player.TogglePlay();
 
         // In Roblox mode, pressing Play from this app jumps straight into the game.
         if (IsPlaying() && _settings.Output == OutputMode.Keyboard && _settings.AutoFocusRoblox && !WindowGuard.RobloxIsFocused())
-        {
-            if (WindowGuard.FocusRoblox()) ShowHint("Switched to Roblox. Playing as soon as the countdown ends.");
-            else if (WindowGuard.FindRobloxWindow() == IntPtr.Zero) ShowHint("Roblox is not running. Open the game and sit at a piano first.");
-            else ShowHint("Could not switch to Roblox automatically. Click into the game to start.");
-        }
+            FocusRobloxWithHint("Switched to Roblox. Playing as soon as the countdown ends.");
     }
 
-    private bool _testing;
-
-    /// <summary>
-    /// Plays a short C major scale into Roblox using background mode while this
-    /// app has focus, so the user can see right away whether their Roblox accepts it.
-    /// </summary>
-    private async void OnTestBackground(object sender, RoutedEventArgs e)
+    /// <summary>Brings Roblox to the front and explains what happened in the status bar.</summary>
+    public void FocusRobloxWithHint(string success)
     {
-        if (_testing) return;
-        if (WindowGuard.FindRobloxWindow() == IntPtr.Zero)
-        {
-            ShowHint("Open Roblox and sit at a piano first, then press Test again.");
-            return;
-        }
-        _testing = true;
-        if (IsPlaying()) _player.Pause();
-        try
-        {
-            ShowHint("Testing: playing a scale into Roblox in the background. Listen to the game...");
-            var bg = new BackgroundOutput();
-            await Task.Run(() =>
-            {
-                bg.Prime();
-                Thread.Sleep(150);
-                foreach (int pitch in new[] { 60, 62, 64, 65, 67, 69, 71, 72 })
-                {
-                    if (KeyMapper.Lookup(pitch) is not KeyStroke key) continue;
-                    bg.NoteDown(pitch, key, 100);
-                    Thread.Sleep(170);
-                    bg.NoteUp(pitch, key);
-                    Thread.Sleep(50);
-                }
-                bg.ReleaseModifiers();
-            });
-            ShowHint("Test done. Heard the scale in Roblox? Background mode works for you. " +
-                     "No sound? Your Roblox ignores background input: use Roblox mode, it switches to the game for you.");
-        }
-        finally
-        {
-            _testing = false;
-        }
+        if (WindowGuard.FocusRoblox()) ShowHint(success);
+        else if (WindowGuard.FindRobloxWindow() == IntPtr.Zero) ShowHint("Roblox is not running. Open the game and sit at a piano first.");
+        else ShowHint("Could not switch to Roblox automatically. Click into the game to continue.");
     }
 
     private void OnStop(object sender, RoutedEventArgs e) => _player.Stop();
@@ -579,9 +550,7 @@ public partial class MainWindow : Window
     private void OnOutputChanged(object sender, RoutedEventArgs e)
     {
         if (_syncing || OutPreview == null) return;
-        var mode = OutPreview.IsChecked == true ? OutputMode.Preview
-                 : OutBackground.IsChecked == true ? OutputMode.Background
-                 : OutputMode.Keyboard;
+        var mode = OutPreview.IsChecked == true ? OutputMode.Preview : OutputMode.Keyboard;
         SetOutput(mode);
     }
 
@@ -589,14 +558,11 @@ public partial class MainWindow : Window
     {
         _player.SetOutput(mode);
         RefreshSettingsPages();
-        ShowHint(mode == OutputMode.Background
-            ? "Background mode is experimental. If notes don't play in your game, switch back to Roblox mode."
-            : OutputDescription(mode));
+        ShowHint(OutputDescription(mode));
     }
 
     private static string OutputDescription(OutputMode mode) => mode switch
     {
-        OutputMode.Background => "Experimental. Tries to keep playing into Roblox while you use other apps. Press Test to check.",
         OutputMode.Preview => "Plays through your PC speakers. Nothing goes to Roblox.",
         _ => "Real key presses. Pressing Play here switches to Roblox for you.",
     };
@@ -674,8 +640,7 @@ public partial class MainWindow : Window
     /// <summary>Status label and brush key for the current player state (shared with the mini player).</summary>
     public static (string Text, string Brush) Describe(Player player) => player.State switch
     {
-        PlayState.Playing when player.WaitingForFocus => (
-            player.Settings.Output == OutputMode.Background ? "Roblox not found" : "Waiting for Roblox", "Warning"),
+        PlayState.Playing when player.WaitingForFocus => ("Waiting for Roblox", "Warning"),
         PlayState.Playing when player.Settings.Output == OutputMode.Preview => ("Previewing", "Success"),
         PlayState.Playing => ("Playing", "Success"),
         PlayState.Countdown => ($"Starting in {Math.Ceiling(player.CountdownRemaining):0}…", "Warning"),
@@ -697,9 +662,8 @@ public partial class MainWindow : Window
         PlayLabel.Text = active ? "Pause" : "Play";
 
         if (_player.WaitingForFocus)
-            HintText.Text = _settings.Output == OutputMode.Background
-                ? "Waiting for Roblox to start. Open the game and playback continues."
-                : "Paused until the Roblox window is focused. Click into the game to continue.";
+            HintText.Text = $"Waiting: Roblox only accepts keys while it is the active window. " +
+                            $"Press {_settings.Hotkeys.PlayPause} or Play in the mini player to jump back.";
         else
             HintText.Text = _hint;
     }
@@ -741,10 +705,8 @@ public partial class MainWindow : Window
         Layout61.IsChecked = _settings.Layout == KeyLayout.Keys61;
         Layout88.IsChecked = _settings.Layout == KeyLayout.Keys88;
         OutKeyboard.IsChecked = _settings.Output == OutputMode.Keyboard;
-        OutBackground.IsChecked = _settings.Output == OutputMode.Background;
         OutPreview.IsChecked = _settings.Output == OutputMode.Preview;
         OutputHint.ToolTip = OutputDescription(_settings.Output);
-        TestBgButton.Visibility = _settings.Output == OutputMode.Background ? Visibility.Visible : Visibility.Collapsed;
         foreach (var r in _refreshers) r();
         _syncing = false;
     }
@@ -804,10 +766,10 @@ public partial class MainWindow : Window
     private void BuildSettingsPage()
     {
         var s = _settings;
-        AddCombo(PlaybackRows, "Send notes to", "Background mode is experimental and may not work in every game.",
-            new[] { "Roblox (focused window)", "Roblox in background (experimental)", "Preview on this PC" },
-            () => (int)s.Output,
-            i => SetOutput((OutputMode)i));
+        AddCombo(PlaybackRows, "Send notes to", "Roblox only accepts keys while its window is active.",
+            new[] { "Roblox", "Preview on this PC" },
+            () => s.Output == OutputMode.Preview ? 1 : 0,
+            i => SetOutput(i == 1 ? OutputMode.Preview : OutputMode.Keyboard));
         AddCombo(PlaybackRows, "Out-of-range notes", "What to do with notes the piano cannot play.",
             new[] { "Fold into range (octave shift)", "Skip them" },
             () => s.OutOfRange == OutOfRange.Fold ? 0 : 1,

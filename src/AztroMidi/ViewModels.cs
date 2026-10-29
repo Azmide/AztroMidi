@@ -25,6 +25,26 @@ public sealed class SongEntry : INotifyPropertyChanged
         }
     }
 
+    private bool _current;
+
+    /// <summary>True for the song that is loaded in the player.</summary>
+    public bool IsCurrent
+    {
+        get => _current;
+        set
+        {
+            if (_current == value) return;
+            _current = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(TileGlyph)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(TileBrush)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(TileInk)));
+        }
+    }
+
+    public string TileGlyph => _current ? "" : "";
+    public Brush TileBrush => (Brush)Application.Current.FindResource(_current ? "Brand" : "Surface2");
+    public Brush TileInk => (Brush)Application.Current.FindResource(_current ? "Ink" : "InkMuted");
+
     public string StarGlyph => _favorite ? "" : "";
     public Brush StarBrush => (Brush)Application.Current.FindResource(_favorite ? "Warning" : "InkFaint");
 

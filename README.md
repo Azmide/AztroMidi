@@ -1,43 +1,63 @@
 <div align="center">
 
+<img src="docs/images/logo.png" width="72" alt="AztroMidi logo" />
+
 # AztroMidi
 
 **A lightweight MIDI auto-player for Roblox pianos, with playback that sounds human.**
 
-Windows 10/11 · C# / WPF · ~350 KB · no dependencies
+[![Latest release](https://img.shields.io/github/v/release/Azmide/AztroMidi?color=0ba6df&label=download)](https://github.com/Azmide/AztroMidi/releases/latest)
+[![CI](https://github.com/Azmide/AztroMidi/actions/workflows/ci.yml/badge.svg)](https://github.com/Azmide/AztroMidi/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-22c55e)](LICENSE)
+![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-2a2f36)
+![.NET](https://img.shields.io/badge/.NET-10-512bd4)
+
+<img src="docs/images/player.png" alt="AztroMidi player" width="820" />
 
 </div>
 
----
+## Why AztroMidi?
+
+- **Tiny and fast.** A ~400 KB app with zero dependencies and sub-millisecond note timing.
+- **Sounds human.** Loose timing, rolled chords, tempo drift and phrase breathing, not robotic playback.
+- **Stays out of your way.** A mini player floats in the corner of Roblox and never steals focus.
+
+## Download
+
+Grab the latest version from **[Releases](https://github.com/Azmide/AztroMidi/releases/latest)**:
+
+| File | For |
+|---|---|
+| `AztroMidi-x.y.z.exe` | Small download. Needs the [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0) (Windows asks to install it on first start). |
+| `AztroMidi-x.y.z-win-x64-standalone.zip` | Bigger, but runs on any Windows 10/11 x64 PC without installing anything. |
+
+## Quick start
+
+1. Open AztroMidi and pick your MIDI folder with the folder icon in **Library**
+   (or drop `.mid` files onto the window).
+2. Join a Roblox game with a piano and sit at it.
+3. Pick a song and press **Play**. AztroMidi switches to Roblox and starts after a short countdown.
+4. Press **F7** for the mini player in the corner of the game.
+
+> Roblox pianos use Shift for black keys. If Shift Lock is on in the game, turn it off
+> or some notes may not play.
 
 ## Features
 
-**Playback**
-- Plays any `.mid` / `.midi` file on Roblox virtual pianos (standard 61-key layout, C2–C7)
-- **88-key mode** that uses the common Ctrl extension for notes below C2 and above C7
-- High-precision timer (sub-millisecond scheduling) that follows tempo changes in the MIDI
-- Speed control from 0.25× to 2×, seek bar, play / pause / stop, previous / next song
-- **Auto transpose** picks the key that fits the most notes on the piano
-- Out-of-range notes can be folded into range by octave, or skipped
-- Optional **sustain pedal** (holds Space with the MIDI pedal)
-- Optional **velocity keys**: Alt + key, 32 levels, for pianos that support loudness
-- Track list with enable / disable, **Solo**, and drum tracks skipped automatically
-- Loop song and auto-play next
+### Playback
+- Standard Roblox virtual piano layout (61 keys, C2–C7) and an **88-key mode** with the Ctrl extension
+- Follows every tempo change in the MIDI file
+- Speed from 0.25× to 2×, seek bar, previous / next, loop and auto-play next
+- **Auto transpose** picks the key that fits the most notes
+- Out-of-range notes are folded by octave or skipped
+- Optional **sustain pedal** (Space) and **velocity keys** (Alt + key, 32 levels)
+- Tracks with enable / disable and **Solo**; drum tracks are skipped automatically
+- **Preview** mode plays the song through your PC speakers before you play it in-game
 
-**Where the notes go** (Send to)
-| Mode | What it does |
-|---|---|
-| Roblox | Real key presses. Roblox must be the focused window (safest, works everywhere) |
-| Background *(experimental)* | Sends key messages straight to the Roblox window, so it keeps playing while you use other apps. Some games may ignore input while unfocused |
-| Preview | Plays the song through your PC speakers to check it before playing in-game |
+### Humanize
 
-**Mini player**
-- A small controller that floats in the **top-right corner of the Roblox window** and follows it
-- Clicking it never takes focus away from Roblox, so playback keeps going into the game
-- Shows the status, progress, speed and the **next keys** to press (virtual piano sheet style, e.g. `t [tuo] y`)
-- Drag it anywhere to unstick it, adjustable opacity, toggle with **F7**
+<img src="docs/images/humanize.png" alt="Humanize settings" width="640" />
 
-**Humanize** (so it sounds played, not robotic)
 | Setting | What it does |
 |---|---|
 | Timing looseness | Each note lands slightly before or after the beat (bell-shaped, not uniform noise) |
@@ -50,68 +70,66 @@ Windows 10/11 · C# / WPF · ~350 KB · no dependencies
 
 Presets: **Off, Subtle, Natural, Expressive, Sloppy**.
 
-**Quality of life**
-- Song library with search, subfolders, and drag & drop of files or folders
-- Live piano visualizer that shows which key is pressed and its keyboard label, plus upcoming keys
-- **Favorites** with a star on each song, and the last song is reopened on start
-- Fits small screens such as 1366×768 laptops
-- Global hotkeys that work inside Roblox (configurable)
-- **Only play while Roblox is focused**, so keys never end up typed into Discord or your browser
-- Countdown before playing, always-on-top mode
+### Mini player
+
+<img src="docs/images/mini-player.png" alt="Mini player" width="300" />
+
+- Sticks to the **top-right corner of the Roblox window** and follows it
+- Clicking it never takes focus away from the game
+- Shows progress, speed and the **next keys** in virtual piano sheet style (`t [tuo] y`)
+- Drag it anywhere to unstick it; adjustable opacity
+
+### Quality of life
+- Library with search, subfolders, drag & drop and **favorites**
+- Live piano visualizer with keyboard labels
+- Reopens the last song on start
+- Global hotkeys that work inside Roblox
+- Only plays while Roblox is focused, so keys never end up in Discord or your browser.
+  Switch away and playback waits; press **F1** to jump back and continue
 - Portable: settings are saved next to the exe in `settings.json`
 
-## Default hotkeys
+## Hotkeys
 
 | Key | Action |
 |---|---|
-| F1 | Play / Pause |
+| F1 | Play / Pause (jumps back to Roblox if playback is waiting) |
 | F2 | Stop |
 | F3 / F4 | Slow down / Speed up |
 | F5 | Next song |
 | F6 | Toggle humanize |
 | F7 | Mini player |
 
-## Getting started
+All hotkeys can be changed in **Settings**.
 
-1. Download `AztroMidi.exe` from Releases (or build it, see below).
-2. Put your MIDI files in a folder, then click the folder icon in **Library** and pick it.
-   You can also create a `songs` folder next to the exe; it is loaded automatically.
-3. Pick a song, join a Roblox game with a piano and sit at it.
-4. Click into Roblox and press **F1**. Press **F7** for the mini player in the corner of the game.
+## FAQ
 
-> Roblox pianos use Shift for black keys. If Shift Lock is on in the game, turn it off
-> in Roblox settings or some notes may not play.
+**Can it keep playing while I use another app?**
+No. Roblox only accepts keyboard input while its window is active, and getting around that
+would mean injecting into the game, which can get your account banned. AztroMidi waits
+while you are away and continues when you come back (press F1 to jump back).
+
+**Is this safe to use?**
+AztroMidi only sends normal key presses, the same as typing on your keyboard. It does not
+touch Roblox's memory or files.
+
+**Where do I get MIDI files?**
+Any `.mid` file works. Piano arrangements with one or two tracks sound best.
 
 ## Building from source
 
-Requires the [.NET 10 SDK](https://dotnet.microsoft.com/download).
+Requires Windows and the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0).
 
 ```powershell
-.\build.ps1                 # small exe (needs the .NET 10 Desktop Runtime)
-.\build.ps1 -SelfContained  # larger exe that runs on any Windows x64 PC
+dotnet run --project src/AztroMidi            # run the app
+dotnet run --project tests/AztroMidi.Tests    # run the tests
+.\build.ps1                                   # build dist\AztroMidi.exe
+.\build.ps1 -SelfContained                    # standalone build
 ```
 
-The output goes to `dist\AztroMidi.exe`. For development, run `dotnet run --project src/AztroMidi`.
+## Contributing
 
-## Project layout
-
-```
-src/AztroMidi/
-├── Core/
-│   ├── MidiFile.cs        Standard MIDI File parser with tempo map
-│   ├── KeyMapper.cs       Roblox 61 / 88-key layout, transpose and velocity keys
-│   ├── Humanizer.cs       Human-like timing, chord rolls, tempo drift, slips
-│   ├── Player.cs          High-precision playback thread
-│   ├── InputSender.cs     Scan-code keyboard input via SendInput
-│   ├── Outputs.cs         Roblox / background / preview outputs
-│   ├── HotkeyManager.cs   Global hotkeys
-│   ├── WindowGuard.cs     Checks that Roblox is the focused window
-│   └── AppSettings.cs     JSON settings
-├── Controls/PianoView.cs  Piano visualizer
-├── Themes/Theme.xaml      Dark / blue theme
-├── MiniPlayer.xaml(.cs)   Floating mini player over Roblox
-└── MainWindow.xaml(.cs)   UI
-```
+Ideas, bug reports and pull requests are welcome. See **[CONTRIBUTING.md](CONTRIBUTING.md)** to get started
+and **[CHANGELOG.md](CHANGELOG.md)** for what changed in each version.
 
 ## Credits
 
@@ -120,4 +138,4 @@ implementation written from scratch.
 
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE) © Azmide

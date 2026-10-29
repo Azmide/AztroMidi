@@ -1,0 +1,19 @@
+name: Feature request
+description: Suggest an idea for AztroMidi
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What would you like?
+      description: Describe the feature and the problem it solves.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else?

@@ -1,9 +1,19 @@
+# Build output
 bin/
 obj/
 dist/
+artifacts/
+TestResults/
+
+# IDEs
 .vs/
 .vscode/
 .idea/
 *.user
 *.suo
+*.DotSettings.user
+
+# Local app data
 settings.json
+songs/
+*.log
