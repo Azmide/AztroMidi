@@ -31,10 +31,14 @@ Grab the latest version from **[Releases](https://github.com/Azmide/AztroMidi/re
 | `AztroMidi-x.y.z.exe` | Small download. Needs the [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0) (Windows asks to install it on first start). |
 | `AztroMidi-x.y.z-win-x64-standalone.zip` | Bigger, but runs on any Windows 10/11 x64 PC without installing anything. |
 
+**First run:** Windows may show *"Windows protected your PC"* because AztroMidi is new and not
+code-signed yet. Click **More info**, then **Run anyway**. Every release includes `SHA256SUMS.txt`
+so you can check that your download is the original file.
+
 ## Quick start
 
-1. Open AztroMidi and pick your MIDI folder with the folder icon in **Library**
-   (or drop `.mid` files onto the window).
+1. Open AztroMidi and pick your MIDI folder with the folder icon in **Library**,
+   or just drag `.mid` files onto the window. They are moved into your library folder.
 2. Join a Roblox game with a piano and sit at it.
 3. Pick a song and press **Play**. AztroMidi switches to Roblox and starts after a short countdown.
 4. Press **F7** for the mini player in the corner of the game.
@@ -79,10 +83,17 @@ Presets: **Off, Subtle, Natural, Expressive, Sloppy**.
 - Shows progress, speed and the **next keys** in virtual piano sheet style (`t [tuo] y`)
 - Drag it anywhere to unstick it; adjustable opacity
 
+### Library
+- Search, subfolders, **favorites** and song lengths
+- **Drag & drop** downloaded `.mid` files (or whole folders) onto the window and they are moved
+  into your library folder. Prefer copying? Change it in **Settings → Dropped MIDI files**
+- Open `.mid` files straight from Explorer with *Open with → AztroMidi*
+- Right-click a song to play it, favorite it, show it in its folder or remove it from the list
+- Clicking a song while another one plays only selects it; double-click or Enter switches songs
+
 ### Quality of life
-- Library with search, subfolders, drag & drop and **favorites**
 - Live piano visualizer with keyboard labels
-- Reopens the last song on start
+- Reopens the last song, page, window size and position on start
 - Global hotkeys that work inside Roblox
 - Only plays while Roblox is focused, so keys never end up in Discord or your browser.
   Switch away and playback waits; press **F1** to jump back and continue
@@ -100,6 +111,20 @@ Presets: **Off, Subtle, Natural, Expressive, Sloppy**.
 | F7 | Mini player |
 
 All hotkeys can be changed in **Settings**.
+
+Inside the AztroMidi window:
+
+| Key | Action |
+|---|---|
+| Space | Play / Pause |
+| ← / → | Seek 5 seconds |
+| + / − | Speed up / Slow down |
+| Enter | Play the selected song |
+| Delete | Remove the selected song from the list |
+| Ctrl+F | Search songs |
+| Ctrl+O | Open MIDI files |
+| Ctrl+1 / 2 / 3 | Player / Humanize / Settings |
+| Ctrl+M | Mini player |
 
 ## FAQ
 

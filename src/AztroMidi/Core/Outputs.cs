@@ -4,14 +4,12 @@ namespace AztroMidi.Core;
 
 public enum OutputMode
 {
-    /// <summary>Real key presses (SendInput). Roblox must be the focused window.</summary>
+    // Real key presses (SendInput). Roblox must be the focused window.
     Keyboard,
-    /// <summary>
-    /// Legacy value from v1.1-1.2. Roblox ignores input sent to an unfocused window,
-    /// so this is treated as Keyboard. Kept so older settings files still load.
-    /// </summary>
+    // Legacy value from v1.1-1.2. Roblox ignores input sent to an unfocused window, so this is
+    // treated as Keyboard. Kept so older settings files still load.
     Background,
-    /// <summary>Plays the notes on this PC's MIDI synth. Nothing is sent to Roblox.</summary>
+    // Plays the notes on this PC's MIDI synth. Nothing is sent to Roblox.
     Preview,
 }
 

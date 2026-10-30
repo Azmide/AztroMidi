@@ -27,7 +27,7 @@ public sealed class Humanizer
 
     public bool Enabled => _s.Enabled;
 
-    /// <summary>Gaussian sample via Box-Muller.</summary>
+    // Gaussian sample via Box-Muller.
     private double Gauss()
     {
         double u1 = 1.0 - _rng.NextDouble();

@@ -5,7 +5,7 @@ using AztroMidi.Core;
 
 namespace AztroMidi.Controls;
 
-/// <summary>Lightweight piano keyboard that lights up keys as they are pressed.</summary>
+// Lightweight piano keyboard that lights up keys as they are pressed.
 public sealed class PianoView : FrameworkElement
 {
     private bool[] _active = new bool[128];
@@ -39,7 +39,7 @@ public sealed class PianoView : FrameworkElement
         set { _showLabels = value; InvalidateVisual(); }
     }
 
-    /// <summary>Called on every frame; only repaints when a key changed.</summary>
+    // Called on every frame; only repaints when a key changed.
     public void Tick()
     {
         bool dirty = false;

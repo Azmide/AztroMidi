@@ -6,6 +6,9 @@ namespace AztroMidi.Core;
 
 public enum SustainMode { Off, FollowPedal }
 
+/// <summary>What happens to MIDI files dropped onto the window.</summary>
+public enum DropAction { Move, Copy, ListOnly }
+
 public sealed class HumanizeSettings
 {
     public bool Enabled { get; set; } = true;
@@ -59,7 +62,15 @@ public sealed class AppSettings
     public double Speed { get; set; } = 1.0;
     public double MinHoldMs { get; set; } = 25;
     public double MaxHoldMs { get; set; } = 4000;
+    [JsonConverter(typeof(JsonStringEnumConverter))]
+    public DropAction DropAction { get; set; } = DropAction.Move;
     public string LastSong { get; set; } = "";
+    public string LastPage { get; set; } = "Player";
+    public double WindowLeft { get; set; } = double.NaN;
+    public double WindowTop { get; set; } = double.NaN;
+    public double WindowWidth { get; set; } = double.NaN;
+    public double WindowHeight { get; set; } = double.NaN;
+    public bool WindowMaximized { get; set; }
     public List<string> Favorites { get; set; } = new();
     public bool MiniSnapToRoblox { get; set; } = true;
     public double MiniOpacity { get; set; } = 0.94;

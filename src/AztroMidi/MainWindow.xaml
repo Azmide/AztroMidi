@@ -5,84 +5,89 @@
         Title="AztroMidi" Width="1120" Height="800" MinWidth="940" MinHeight="660"
         WindowStartupLocation="CenterScreen" WindowStyle="SingleBorderWindow" ResizeMode="CanResize"
         Background="{StaticResource Base}" Foreground="{StaticResource Ink}"
-        FontFamily="{StaticResource UiFont}" AllowDrop="True" Drop="OnDrop" DragOver="OnDragOver"
+        FontFamily="{StaticResource UiFont}" AllowDrop="True" Drop="OnDrop" DragOver="OnDragOver" DragLeave="OnDragLeave"
         UseLayoutRounding="True" TextOptions.TextFormattingMode="Display">
 
     <!--
-        The top 60 px act as a real Windows title bar: drag to move, drag down from
+        The top 44 px act as a real Windows title bar: drag to move, drag down from
         maximized to restore, double-click to maximize, Snap to screen edges.
         Interactive elements inside it opt out with IsHitTestVisibleInChrome.
     -->
     <WindowChrome.WindowChrome>
-        <WindowChrome CaptionHeight="60" ResizeBorderThickness="6" GlassFrameThickness="0" CornerRadius="0"
+        <WindowChrome CaptionHeight="44" ResizeBorderThickness="6" GlassFrameThickness="0" CornerRadius="0"
                       UseAeroCaptionButtons="False"/>
     </WindowChrome.WindowChrome>
 
     <Grid x:Name="RootGrid">
-        <Border Background="{StaticResource WindowGlow}" IsHitTestVisible="False"/>
         <Grid>
             <Grid.RowDefinitions>
-                <RowDefinition Height="60"/>
+                <RowDefinition Height="44"/>
                 <RowDefinition Height="*"/>
-                <RowDefinition Height="34"/>
+                <RowDefinition Height="28"/>
             </Grid.RowDefinitions>
 
-            <!-- ============ Title bar / navigation ============ -->
-            <Border Grid.Row="0" Background="#CC14171A" BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1">
-                <Grid Margin="18,0,10,0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
+            <!-- ============ Title bar ============ -->
+            <Grid Grid.Row="0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
 
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <Border Width="32" Height="32" CornerRadius="10">
-                            <Border.Background>
-                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                    <GradientStop Color="#4FC8F2" Offset="0"/>
-                                    <GradientStop Color="#0A80AD" Offset="1"/>
-                                </LinearGradientBrush>
-                            </Border.Background>
-                            <TextBlock Text="&#xE8D6;" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="White"
-                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                        <TextBlock Margin="10,0,0,0" VerticalAlignment="Center" FontSize="17" FontWeight="Bold">
-                            <Run Text="Aztro"/><Run Text="Midi" Foreground="{StaticResource Brand}"/>
-                        </TextBlock>
-                        <Border Style="{StaticResource Pill}" Margin="10,0,0,0" Padding="8,2">
-                            <TextBlock x:Name="VersionText" Text="v1.0" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource BrandMuted}"/>
-                        </Border>
-                    </StackPanel>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="22,0,0,0">
+                    <Border Width="24" Height="24" CornerRadius="6">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                <GradientStop Color="#4FC8F2" Offset="0"/>
+                                <GradientStop Color="#0A80AD" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                        <TextBlock Text="&#xE8D6;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="White"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <TextBlock Margin="12,0,0,0" VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold">
+                        <Run Text="Aztro"/><Run Text="Midi" Foreground="{StaticResource Brand}"/>
+                    </TextBlock>
+                    <TextBlock x:Name="VersionText" Text="v1.0" Margin="8,1,0,0" FontSize="11" Foreground="{StaticResource InkFaint}"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
 
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                WindowChrome.IsHitTestVisibleInChrome="True">
-                        <RadioButton x:Name="NavPlayer" Style="{StaticResource NavTab}" Content="Player" GroupName="Nav" IsChecked="True" Checked="OnNav"/>
-                        <RadioButton x:Name="NavHumanize" Style="{StaticResource NavTab}" Content="Humanize" GroupName="Nav" Checked="OnNav"/>
-                        <RadioButton x:Name="NavSettings" Style="{StaticResource NavTab}" Content="Settings" GroupName="Nav" Checked="OnNav"/>
-                    </StackPanel>
+                <!-- Song that is playing, centered like a media app -->
+                <TextBlock x:Name="TitleSong" Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center"
+                           FontSize="12" Foreground="{StaticResource InkMuted}" TextTrimming="CharacterEllipsis" Margin="20,0"/>
 
-                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center"
-                                WindowChrome.IsHitTestVisibleInChrome="True">
-                        <Button x:Name="MiniButton" Style="{StaticResource IconButton}" Content="&#xE8A7;" ToolTip="Mini player over Roblox (F7)" Click="OnMini"/>
-                        <Button x:Name="PinButton" Style="{StaticResource IconButton}" Content="&#xE718;" ToolTip="Always on top" Click="OnPin"/>
-                        <Button Style="{StaticResource IconButton}" Content="&#xE921;" ToolTip="Minimize" Click="OnMinimize"/>
-                        <Button x:Name="MaxButton" Style="{StaticResource IconButton}" Content="&#xE922;" ToolTip="Maximize" Click="OnMaximize"/>
-                        <Button Style="{StaticResource CloseButton}" Content="&#xE8BB;" ToolTip="Close" Click="OnClose"/>
-                    </StackPanel>
-                </Grid>
-            </Border>
+                <StackPanel Grid.Column="2" Orientation="Horizontal" WindowChrome.IsHitTestVisibleInChrome="True">
+                    <Button x:Name="PinButton" Style="{StaticResource CaptionButton}" Content="&#xE718;" ToolTip="Always on top" AutomationProperties.Name="Always on top" Click="OnPin"/>
+                    <Button Style="{StaticResource CaptionButton}" Content="&#xE921;" ToolTip="Minimize" AutomationProperties.Name="Minimize" Click="OnMinimize"/>
+                    <Button x:Name="MaxButton" Style="{StaticResource CaptionButton}" Content="&#xE922;" ToolTip="Maximize" AutomationProperties.Name="Maximize" Click="OnMaximize"/>
+                    <Button Style="{StaticResource CaptionCloseButton}" Content="&#xE8BB;" ToolTip="Close" AutomationProperties.Name="Close" Click="OnClose"/>
+                </StackPanel>
+            </Grid>
+
+            <!-- ============ Sidebar ============ -->
+            <Grid Grid.Row="1" Width="72" HorizontalAlignment="Left" Margin="0,4,0,0">
+                <StackPanel>
+                    <RadioButton x:Name="NavPlayer" Style="{StaticResource RailTab}" Tag="&#xEC4F;" Content="Player" GroupName="Nav"
+                                 IsChecked="True" Checked="OnNav" ToolTip="Player (Ctrl+1)"/>
+                    <RadioButton x:Name="NavHumanize" Style="{StaticResource RailTab}" Tag="&#xE77B;" Content="Humanize" GroupName="Nav"
+                                 Checked="OnNav" ToolTip="Humanize (Ctrl+2)"/>
+                    <RadioButton x:Name="NavSettings" Style="{StaticResource RailTab}" Tag="&#xE713;" Content="Settings" GroupName="Nav"
+                                 Checked="OnNav" ToolTip="Settings (Ctrl+3)"/>
+                </StackPanel>
+                <RadioButton x:Name="MiniButton" Style="{StaticResource RailTab}" Tag="&#xE8A7;" Content="Mini" GroupName="MiniNav"
+                             VerticalAlignment="Bottom" Margin="6,0,6,8" Click="OnMini" ToolTip="Mini player over Roblox (F7)"/>
+            </Grid>
 
             <!-- ============ Player page ============ -->
-            <Grid x:Name="PagePlayer" Grid.Row="1" Margin="18,16,18,8">
+            <Grid x:Name="PagePlayer" Grid.Row="1" Margin="72,4,12,8">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="300"/>
-                    <ColumnDefinition Width="16"/>
+                    <ColumnDefinition Width="12"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="*"/>
-                    <RowDefinition Height="16"/>
+                    <RowDefinition Height="12"/>
                     <RowDefinition Height="132"/>
                 </Grid.RowDefinitions>
 
@@ -101,9 +106,9 @@
                                 <TextBlock x:Name="LibraryInfo" Style="{StaticResource Muted}" Text="No folder selected" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
                             </StackPanel>
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
-                                <Button Style="{StaticResource IconButton}" Content="&#xE838;" ToolTip="Choose songs folder" Click="OnPickFolder"/>
-                                <Button Style="{StaticResource IconButton}" Content="&#xE8E5;" ToolTip="Open a MIDI file" Click="OnOpenFile"/>
-                                <Button Style="{StaticResource IconButton}" Content="&#xE72C;" ToolTip="Refresh" Click="OnRefreshLibrary"/>
+                                <Button Style="{StaticResource IconButton}" Content="&#xE838;" ToolTip="Choose songs folder" AutomationProperties.Name="Choose songs folder" Click="OnPickFolder"/>
+                                <Button Style="{StaticResource IconButton}" Content="&#xE8E5;" ToolTip="Open a MIDI file" AutomationProperties.Name="Open a MIDI file" Click="OnOpenFile"/>
+                                <Button Style="{StaticResource IconButton}" Content="&#xE72C;" ToolTip="Refresh" AutomationProperties.Name="Refresh" Click="OnRefreshLibrary"/>
                             </StackPanel>
                         </Grid>
                         <TextBox x:Name="SearchBox" Grid.Row="1" Tag="Search songs..." TextChanged="OnSearch" Margin="0,0,0,8"/>
@@ -136,11 +141,13 @@
                                         </Border>
                                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                             <TextBlock Text="{Binding Name}" FontSize="12.5" FontWeight="Medium" TextTrimming="CharacterEllipsis"/>
-                                            <TextBlock Text="{Binding Folder}" FontSize="10.5" Foreground="{StaticResource InkFaint}" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock FontSize="10.5" Foreground="{StaticResource InkFaint}" TextTrimming="CharacterEllipsis">
+                                                <Run Text="{Binding Duration, Mode=OneWay}"/><Run Text="  "/><Run Text="{Binding Folder, Mode=OneWay}"/>
+                                            </TextBlock>
                                         </StackPanel>
                                         <Button Grid.Column="2" Style="{StaticResource IconButton}" Width="26" Height="26" FontSize="12"
                                                 Content="{Binding StarGlyph}" Foreground="{Binding StarBrush}" Tag="{Binding}"
-                                                ToolTip="Favorite" Click="OnToggleFavorite"/>
+                                                ToolTip="Favorite" AutomationProperties.Name="Favorite" Click="OnToggleFavorite"/>
                                     </Grid>
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
@@ -157,12 +164,12 @@
                 <Grid Grid.Column="2">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="16"/>
+                        <RowDefinition Height="12"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
                     <!-- Now playing -->
-                    <Border Style="{StaticResource Card}" Padding="20,18">
+                    <Border Style="{StaticResource Card}" Padding="18,16">
                         <StackPanel>
                             <StackPanel Orientation="Horizontal">
                                 <Border x:Name="StatusPill" Style="{StaticResource Pill}">
@@ -230,20 +237,20 @@
                                             <TextBlock x:Name="PlayLabel" Text="Play" Margin="8,0,0,0" VerticalAlignment="Center"/>
                                         </StackPanel>
                                     </Button>
-                                    <Button Height="40" Width="44" Margin="8,0,0,0" ToolTip="Stop" Click="OnStop">
+                                    <Button Height="40" Width="44" Margin="8,0,0,0" ToolTip="Stop" AutomationProperties.Name="Stop" Click="OnStop">
                                         <TextBlock Text="&#xE71A;" FontFamily="Segoe MDL2 Assets" FontSize="13"/>
                                     </Button>
-                                    <Button Height="40" Width="44" Margin="8,0,0,0" ToolTip="Previous song" Click="OnPrev">
+                                    <Button Height="40" Width="44" Margin="8,0,0,0" ToolTip="Previous song" AutomationProperties.Name="Previous song" Click="OnPrev">
                                         <TextBlock Text="&#xE892;" FontFamily="Segoe MDL2 Assets" FontSize="13"/>
                                     </Button>
-                                    <Button Height="40" Width="44" Margin="8,0,0,0" ToolTip="Next song" Click="OnNext">
+                                    <Button Height="40" Width="44" Margin="8,0,0,0" ToolTip="Next song" AutomationProperties.Name="Next song" Click="OnNext">
                                         <TextBlock Text="&#xE893;" FontFamily="Segoe MDL2 Assets" FontSize="13"/>
                                     </Button>
                                     <Border Width="1" Height="24" Background="{StaticResource Line}" Margin="12,0,4,0"/>
                                     <ToggleButton x:Name="QuickLoop" Style="{StaticResource IconToggle}" Height="40" Width="44" Margin="8,0,0,0"
-                                                  Content="&#xE8ED;" ToolTip="Loop this song" Checked="OnQuickToggle" Unchecked="OnQuickToggle"/>
+                                                  Content="&#xE8ED;" ToolTip="Loop this song" AutomationProperties.Name="Loop this song" Checked="OnQuickToggle" Unchecked="OnQuickToggle"/>
                                     <ToggleButton x:Name="QuickAutoNext" Style="{StaticResource IconToggle}" Height="40" Width="44" Margin="8,0,0,0"
-                                                  Content="&#xE8EE;" ToolTip="Auto-play the next song" Checked="OnQuickToggle" Unchecked="OnQuickToggle"/>
+                                                  Content="&#xE8EE;" ToolTip="Auto-play the next song" AutomationProperties.Name="Auto-play the next song" Checked="OnQuickToggle" Unchecked="OnQuickToggle"/>
                                 </StackPanel>
                                 <StackPanel Grid.Column="2" Width="230" VerticalAlignment="Center">
                                     <Grid>
@@ -260,7 +267,7 @@
                     <Grid Grid.Row="2">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="270"/>
-                            <ColumnDefinition Width="16"/>
+                            <ColumnDefinition Width="12"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
 
@@ -277,7 +284,7 @@
                                                    Foreground="{StaticResource BrandMuted}" VerticalAlignment="Center"/>
                                         <Button Padding="0" Width="30" Height="30" Content="+" FontSize="14" Click="OnTransposeUp"/>
                                         <Button Margin="6,0,0,0" Padding="10,0" Height="30" Content="Auto" FontSize="11.5"
-                                                ToolTip="Find the key that fits the most notes on the Roblox piano" Click="OnTransposeAuto"/>
+                                                ToolTip="Find the key that fits the most notes on the Roblox piano" AutomationProperties.Name="Find the key that fits the most notes on the Roblox piano" Click="OnTransposeAuto"/>
                                     </StackPanel>
                                 </Grid>
 
@@ -361,9 +368,9 @@
             </Grid>
 
             <!-- ============ Humanize page ============ -->
-            <ScrollViewer x:Name="PageHumanize" Grid.Row="1" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
-                <StackPanel Margin="18,16,18,8" MaxWidth="820">
-                    <Border Style="{StaticResource Card}" Padding="22">
+            <ScrollViewer x:Name="PageHumanize" Grid.Row="1" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" Margin="72,4,0,0">
+                <StackPanel Margin="0,0,12,8" MaxWidth="820">
+                    <Border Style="{StaticResource Card}" Padding="20">
                         <StackPanel>
                             <Grid>
                                 <StackPanel>
@@ -378,23 +385,23 @@
                             <WrapPanel x:Name="PresetPanel"/>
                         </StackPanel>
                     </Border>
-                    <Border Style="{StaticResource Card}" Padding="22" Margin="0,16,0,0">
+                    <Border Style="{StaticResource Card}" Padding="20" Margin="0,12,0,0">
                         <StackPanel x:Name="HumanizeRows"/>
                     </Border>
                 </StackPanel>
             </ScrollViewer>
 
             <!-- ============ Settings page ============ -->
-            <ScrollViewer x:Name="PageSettings" Grid.Row="1" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
-                <StackPanel Margin="18,16,18,8" MaxWidth="820">
-                    <Border Style="{StaticResource Card}" Padding="22">
+            <ScrollViewer x:Name="PageSettings" Grid.Row="1" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" Margin="72,4,0,0">
+                <StackPanel Margin="0,0,12,8" MaxWidth="820">
+                    <Border Style="{StaticResource Card}" Padding="20">
                         <StackPanel>
                             <TextBlock Style="{StaticResource H1}" Text="Playback"/>
                             <TextBlock Style="{StaticResource Muted}" Margin="0,4,0,8" Text="How notes are turned into key presses for the Roblox piano."/>
                             <StackPanel x:Name="PlaybackRows"/>
                         </StackPanel>
                     </Border>
-                    <Border Style="{StaticResource Card}" Padding="22" Margin="0,16,0,0">
+                    <Border Style="{StaticResource Card}" Padding="20" Margin="0,12,0,0">
                         <StackPanel>
                             <TextBlock Style="{StaticResource H1}" Text="Mini player"/>
                             <TextBlock Style="{StaticResource Muted}" Margin="0,4,0,8"
@@ -402,14 +409,14 @@
                             <StackPanel x:Name="MiniRows"/>
                         </StackPanel>
                     </Border>
-                    <Border Style="{StaticResource Card}" Padding="22" Margin="0,16,0,0">
+                    <Border Style="{StaticResource Card}" Padding="20" Margin="0,12,0,0">
                         <StackPanel>
                             <TextBlock Style="{StaticResource H1}" Text="Hotkeys"/>
                             <TextBlock Style="{StaticResource Muted}" Margin="0,4,0,8" Text="Global keys that work while Roblox is focused."/>
                             <StackPanel x:Name="HotkeyRows"/>
                         </StackPanel>
                     </Border>
-                    <Border Style="{StaticResource Card}" Padding="22" Margin="0,16,0,0">
+                    <Border Style="{StaticResource Card}" Padding="20" Margin="0,12,0,0">
                         <StackPanel>
                             <TextBlock Style="{StaticResource H1}" Text="About"/>
                             <TextBlock Style="{StaticResource Muted}" Margin="0,4,0,0" x:Name="AboutText"/>
@@ -419,12 +426,26 @@
             </ScrollViewer>
 
             <!-- ============ Status bar ============ -->
-            <Border Grid.Row="2" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0" Background="#9914171A">
+            <Border Grid.Row="2" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0" Background="{StaticResource Base}">
                 <Grid Margin="18,0">
                     <TextBlock x:Name="HintText" Style="{StaticResource Muted}" VerticalAlignment="Center" TextWrapping="NoWrap"/>
                     <TextBlock x:Name="HotkeyText" Style="{StaticResource Muted}" VerticalAlignment="Center" HorizontalAlignment="Right" TextWrapping="NoWrap"/>
                 </Grid>
             </Border>
         </Grid>
+
+        <!-- Shown while files are dragged over the window -->
+        <Border x:Name="DropOverlay" Visibility="Collapsed" Background="#D914171A" IsHitTestVisible="False">
+            <Border BorderBrush="{StaticResource Brand}" BorderThickness="2" CornerRadius="10" Margin="24"
+                    Background="#1A0BA6DF">
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <TextBlock Text="&#xE896;" FontFamily="Segoe MDL2 Assets" FontSize="40" Foreground="{StaticResource Brand}"
+                               HorizontalAlignment="Center"/>
+                    <TextBlock x:Name="DropText" Text="Drop to move into your library" FontSize="18" FontWeight="SemiBold"
+                               Margin="0,14,0,4" HorizontalAlignment="Center"/>
+                    <TextBlock Text=".mid, .midi and whole folders" Style="{StaticResource Muted}" HorizontalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+        </Border>
     </Grid>
 </Window>

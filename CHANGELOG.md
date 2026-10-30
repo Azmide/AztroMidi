@@ -5,6 +5,25 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Added
+- Drag & drop MIDI files or folders onto the window to move them into your library folder
+  (or copy, or only add to the list; see Settings → Dropped MIDI files).
+- Open `.mid` files from Explorer with AztroMidi; if it is already running, the files go to that window.
+- Right-click menu on songs: play, favorite, show in folder, copy path, remove from list.
+- Song lengths in the library.
+- Keyboard shortcuts: Space, arrow keys, +/−, Enter, Delete, Ctrl+F, Ctrl+O, Ctrl+1/2/3, Ctrl+M.
+- The playing song is shown in the title bar and the taskbar.
+- Window size, position and the last page are remembered.
+- Releases include `SHA256SUMS.txt`, and the release notes explain the Windows SmartScreen prompt.
+
+### Changed
+- New desktop look: sidebar navigation, slimmer title bar with standard window buttons,
+  Windows' own font, flatter panels and smaller corners.
+- Buttons and icons have accessible names for screen readers.
+
+### Fixed
+- Clicking another song while one is playing no longer stops the music; it only selects it.
+
 ## [1.3.1] - 2026-10-29
 
 ### Changed

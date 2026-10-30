@@ -52,9 +52,9 @@
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                     <Button x:Name="SnapButton" Style="{StaticResource IconButton}" Width="24" Height="22" FontSize="10"
-                            Content="&#xE718;" ToolTip="Stick to the top-right corner of Roblox" Click="OnSnap"/>
+                            Content="&#xE718;" ToolTip="Stick to the top-right corner of Roblox" AutomationProperties.Name="Stick to the top-right corner of Roblox" Click="OnSnap"/>
                     <Button Style="{StaticResource IconButton}" Width="24" Height="22" FontSize="10"
-                            Content="&#xE740;" ToolTip="Open the full window" Click="OnExpand"/>
+                            Content="&#xE740;" ToolTip="Open the full window" AutomationProperties.Name="Open the full window" Click="OnExpand"/>
                 </StackPanel>
             </Grid>
 
@@ -75,25 +75,25 @@
             <!-- Transport -->
             <Grid Margin="0,6,0,0">
                 <StackPanel Orientation="Horizontal">
-                    <Button Width="32" Height="30" Padding="0" ToolTip="Previous" Click="OnPrev">
+                    <Button Width="32" Height="30" Padding="0" ToolTip="Previous" AutomationProperties.Name="Previous" Click="OnPrev">
                         <TextBlock Text="&#xE892;" FontFamily="Segoe MDL2 Assets" FontSize="11"/>
                     </Button>
                     <Button x:Name="PlayButton" Style="{StaticResource PrimaryButton}" Width="44" Height="30" Padding="0"
-                            Margin="5,0,0,0" ToolTip="Play / Pause" Click="OnPlay">
+                            Margin="5,0,0,0" ToolTip="Play / Pause" AutomationProperties.Name="Play / Pause" Click="OnPlay">
                         <TextBlock x:Name="PlayIcon" Text="&#xE768;" FontFamily="Segoe MDL2 Assets" FontSize="12"/>
                     </Button>
-                    <Button Width="32" Height="30" Padding="0" Margin="5,0,0,0" ToolTip="Stop" Click="OnStop">
+                    <Button Width="32" Height="30" Padding="0" Margin="5,0,0,0" ToolTip="Stop" AutomationProperties.Name="Stop" Click="OnStop">
                         <TextBlock Text="&#xE71A;" FontFamily="Segoe MDL2 Assets" FontSize="11"/>
                     </Button>
-                    <Button Width="32" Height="30" Padding="0" Margin="5,0,0,0" ToolTip="Next" Click="OnNext">
+                    <Button Width="32" Height="30" Padding="0" Margin="5,0,0,0" ToolTip="Next" AutomationProperties.Name="Next" Click="OnNext">
                         <TextBlock Text="&#xE893;" FontFamily="Segoe MDL2 Assets" FontSize="11"/>
                     </Button>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <Button Width="24" Height="30" Padding="0" Content="−" ToolTip="Slower" Click="OnSlower"/>
+                    <Button Width="24" Height="30" Padding="0" Content="−" ToolTip="Slower" AutomationProperties.Name="Slower" Click="OnSlower"/>
                     <TextBlock x:Name="SpeedText" Text="1.00x" Width="42" TextAlignment="Center" FontSize="11.5"
                                FontWeight="SemiBold" Foreground="{StaticResource BrandMuted}" VerticalAlignment="Center"/>
-                    <Button Width="24" Height="30" Padding="0" Content="+" ToolTip="Faster" Click="OnFaster"/>
+                    <Button Width="24" Height="30" Padding="0" Content="+" ToolTip="Faster" AutomationProperties.Name="Faster" Click="OnFaster"/>
                 </StackPanel>
             </Grid>
 

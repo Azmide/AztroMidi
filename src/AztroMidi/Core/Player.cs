@@ -412,7 +412,7 @@ public sealed class Player : IDisposable
         }
     }
 
-    /// <summary>Whether notes can be delivered right now with the current output.</summary>
+    // Whether notes can be delivered right now with the current output.
     private bool RobloxReady() => Settings.Output switch
     {
         OutputMode.Preview => true,

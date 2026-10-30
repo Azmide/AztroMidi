@@ -27,7 +27,7 @@ public sealed class SongEntry : INotifyPropertyChanged
 
     private bool _current;
 
-    /// <summary>True for the song that is loaded in the player.</summary>
+    // True for the song that is loaded in the player.
     public bool IsCurrent
     {
         get => _current;
@@ -41,11 +41,25 @@ public sealed class SongEntry : INotifyPropertyChanged
         }
     }
 
-    public string TileGlyph => _current ? "" : "";
+    public string TileGlyph => _current ? "\uE995" : "\uEC4F";
     public Brush TileBrush => (Brush)Application.Current.FindResource(_current ? "Brand" : "Surface2");
     public Brush TileInk => (Brush)Application.Current.FindResource(_current ? "Ink" : "InkMuted");
 
-    public string StarGlyph => _favorite ? "" : "";
+    private string _duration = "";
+
+    // Song length such as "3:42", filled in the background after the library loads.
+    public string Duration
+    {
+        get => _duration;
+        set
+        {
+            if (_duration == value) return;
+            _duration = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Duration)));
+        }
+    }
+
+    public string StarGlyph => _favorite ? "\uE735" : "\uE734";
     public Brush StarBrush => (Brush)Application.Current.FindResource(_favorite ? "Warning" : "InkFaint");
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -78,7 +92,7 @@ public sealed class TrackItem : INotifyPropertyChanged
         }
     }
 
-    /// <summary>Sets the value without notifying the player (used for bulk updates).</summary>
+    // Sets the value without notifying the player (used for bulk updates).
     public void SetQuiet(bool value)
     {
         _enabled = value;

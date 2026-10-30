@@ -9,11 +9,8 @@ using AztroMidi.Core;
 
 namespace AztroMidi;
 
-/// <summary>
-/// Small always-on-top controller that sits in the top-right corner of the
-/// Roblox window. It never takes keyboard focus, so clicking it keeps Roblox
-/// focused and the notes keep landing in the game.
-/// </summary>
+// Small always-on-top controller that sits in the top-right corner of the Roblox window. It never
+// takes keyboard focus, so clicking it keeps Roblox focused and the notes keep landing in the game.
 public partial class MiniPlayer : Window
 {
     [DllImport("user32.dll")] private static extern int GetWindowLong(IntPtr hWnd, int index);
@@ -141,7 +138,7 @@ public partial class MiniPlayer : Window
         StatusText.Text = text;
         StatusDot.Fill = (Brush)FindResource(brush);
         bool active = player.State is PlayState.Playing or PlayState.Countdown;
-        PlayIcon.Text = active ? "" : "";
+        PlayIcon.Text = active ? "\uE769" : "\uE768";
 
         var next = player.Upcoming(8);
         var joined = string.Join(" ", next);
