@@ -70,6 +70,63 @@ finally
     File.Delete(path);
 }
 
+Console.WriteLine("== MIDI validation");
+void RejectMidi(byte[] body, string what, int division = 480, int format = 0)
+{
+    var invalidPath = TestMidi.WriteRaw(body, division, format);
+    try
+    {
+        try { MidiFile.Load(invalidPath); Check(false, what); }
+        catch (InvalidDataException) { Check(true, what); }
+    }
+    finally { File.Delete(invalidPath); }
+}
+RejectMidi(new byte[] { 0, 0x90, 60 }, "reject truncated note event");
+RejectMidi(new byte[] { 0, 0xFF }, "reject truncated meta event");
+RejectMidi(new byte[] { 0, 0xFF, 3, 5, 65 }, "reject meta payload beyond track");
+RejectMidi(new byte[] { 0, 0xF0, 5, 1 }, "reject SysEx payload beyond track");
+RejectMidi(new byte[] { 0x81 }, "reject truncated delta time");
+RejectMidi(new byte[] { 0x81, 0x80, 0x80, 0x80, 0 }, "reject oversized variable-length value");
+RejectMidi(new byte[] { 0, 60, 100 }, "reject running status without channel event");
+RejectMidi(new byte[] { 0, 0x90, 60, 0xFF }, "reject status byte inside note data");
+RejectMidi(new byte[] { 0, 0xF1, 0 }, "reject unsupported system status");
+RejectMidi(new byte[] { 0, 0xFF, 0x2F, 0 }, "reject zero PPQN division", division: 0);
+RejectMidi(new byte[] { 0, 0xFF, 0x2F, 0 }, "reject zero SMPTE ticks per frame", division: 0xE300);
+RejectMidi(new byte[] { 0, 0xFF, 0x2F, 0 }, "reject unsupported SMPTE frame rate", division: 0xE601);
+RejectMidi(new byte[] { 0, 0xFF, 0x2F, 0 }, "reject asynchronous format 2 tracks", format: 2);
+var boundaryPath = TestMidi.WriteRaw(new byte[] { 0, 0x90, 60 });
+try
+{
+    // A following chunk must never supply the missing velocity byte.
+    using (var stream = File.Open(boundaryPath, FileMode.Append))
+        stream.Write(new byte[] { 77, 84, 114, 107, 0, 0, 0, 4, 0, 0xFF, 0x2F, 0 });
+    try { MidiFile.Load(boundaryPath); Check(false, "note data cannot cross track boundary"); }
+    catch (InvalidDataException) { Check(true, "note data cannot cross track boundary"); }
+}
+finally { File.Delete(boundaryPath); }
+var truncatedPath = TestMidi.WriteSample();
+try
+{
+    var bytes = File.ReadAllBytes(truncatedPath);
+    bool rejected = true;
+    for (int length = 4; length < bytes.Length; length++)
+    {
+        File.WriteAllBytes(truncatedPath, bytes[..length]);
+        try { MidiFile.Load(truncatedPath); rejected = false; }
+        catch (InvalidDataException) { }
+    }
+    Check(rejected, "reject every truncated prefix of a valid multi-track file");
+}
+finally { File.Delete(truncatedPath); }
+
+var smptePath = TestMidi.WriteRaw(new byte[] { 0, 0x90, 60, 100, 0x87, 0x68, 0x80, 60, 0 }, 0xE364);
+try
+{
+    var smpte = MidiFile.Load(smptePath);
+    Check(Math.Abs(smpte.Length - 1001.0 / 3000) < 1e-9, "SMPTE -29 uses 29.97 fps timing");
+}
+finally { File.Delete(smptePath); }
+
 Console.WriteLine("== Humanizer");
 var h = new Humanizer(new HumanizeSettings { TimingJitterMs = 10 }, seed: 1);
 var offsets = Enumerable.Range(0, 5000).Select(_ => h.TimingOffset() * 1000).ToList();

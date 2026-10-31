@@ -67,12 +67,14 @@ public sealed class MidiFile
 
         int headerLen = ReadInt32(data, ref pos);
         int headerStart = pos;
+        if (headerLen < 6) throw new InvalidDataException("MIDI header is too short.");
+        RequireBytes(data, pos, headerLen, data.Length);
         int format = ReadInt16(data, ref pos);
         int trackCount = ReadInt16(data, ref pos);
         int division = ReadInt16(data, ref pos);
         pos = headerStart + headerLen;
 
-        if (format > 2) throw new InvalidDataException($"Unsupported MIDI format {format}.");
+        if (format > 1) throw new InvalidDataException($"Unsupported MIDI format {format}.");
         bool smpte = (division & 0x8000) != 0;
         double ticksPerQuarter = division & 0x7FFF;
         double smpteTickSeconds = 0;
@@ -80,26 +82,31 @@ public sealed class MidiFile
         {
             int fps = -(sbyte)(division >> 8);
             int ticksPerFrame = division & 0xFF;
-            smpteTickSeconds = 1.0 / (fps * ticksPerFrame);
+            if (fps is not (24 or 25 or 29 or 30) || ticksPerFrame == 0)
+                throw new InvalidDataException("Invalid SMPTE time division.");
+            double framesPerSecond = fps == 29 ? 30000.0 / 1001 : fps;
+            smpteTickSeconds = 1.0 / (framesPerSecond * ticksPerFrame);
         }
-        if (!smpte && ticksPerQuarter <= 0) ticksPerQuarter = 480;
+        if (!smpte && ticksPerQuarter == 0) throw new InvalidDataException("Invalid MIDI time division.");
 
         var events = new List<RawEvent>(8192);
         int order = 0;
 
-        for (int t = 0; t < trackCount && pos + 8 <= data.Length; t++)
+        for (int t = 0; t < trackCount; t++)
         {
             // Skip unknown chunks until the next MTrk.
             while (pos + 8 <= data.Length && !Matches(data, pos, "MTrk"u8))
             {
                 pos += 4;
                 int skip = ReadInt32(data, ref pos);
+                RequireBytes(data, pos, skip, data.Length);
                 pos += skip;
             }
-            if (pos + 8 > data.Length) break;
+            RequireBytes(data, pos, 8, data.Length);
             pos += 4;
             int len = ReadInt32(data, ref pos);
-            int end = Math.Min(data.Length, pos + len);
+            RequireBytes(data, pos, len, data.Length);
+            int end = pos + len;
 
             var info = new MidiTrackInfo { Index = t };
             Tracks.Add(info);
@@ -108,12 +115,12 @@ public sealed class MidiFile
             byte running = 0;
             while (pos < end)
             {
-                tick += ReadVarLen(data, ref pos);
-                if (pos >= end) break;
+                tick += ReadVarLen(data, ref pos, end);
+                RequireBytes(data, pos, 1, end);
                 byte status = data[pos];
                 if (status < 0x80)
                 {
-                    if (running == 0) { pos++; continue; } // corrupt data, resync
+                    if (running == 0) throw new InvalidDataException("MIDI running status has no preceding channel event.");
                     status = running;
                 }
                 else
@@ -124,9 +131,10 @@ public sealed class MidiFile
 
                 if (status == 0xFF)
                 {
+                    RequireBytes(data, pos, 1, end);
                     byte type = data[pos++];
-                    int mlen = (int)ReadVarLen(data, ref pos);
-                    if (pos + mlen > data.Length) mlen = Math.Max(0, data.Length - pos);
+                    int mlen = (int)ReadVarLen(data, ref pos, end);
+                    RequireBytes(data, pos, mlen, end);
                     switch (type)
                     {
                         case 0x03 when info.Name.Length == 0:
@@ -146,15 +154,22 @@ public sealed class MidiFile
                 }
                 if (status == 0xF0 || status == 0xF7)
                 {
-                    int slen = (int)ReadVarLen(data, ref pos);
+                    running = 0;
+                    int slen = (int)ReadVarLen(data, ref pos, end);
+                    RequireBytes(data, pos, slen, end);
                     pos += slen;
                     continue;
                 }
 
+                if (status >= 0xF0) throw new InvalidDataException("Unsupported MIDI status byte.");
                 int kind = status & 0xF0;
+                int count = kind is 0xC0 or 0xD0 ? 1 : 2;
+                RequireBytes(data, pos, count, end);
+                for (int k = 0; k < count; k++)
+                    if (data[pos + k] >= 0x80) throw new InvalidDataException("Invalid MIDI data byte.");
                 byte d1 = data[pos++];
                 byte d2 = 0;
-                if (kind != 0xC0 && kind != 0xD0) d2 = pos < data.Length ? data[pos++] : (byte)0;
+                if (kind != 0xC0 && kind != 0xD0) d2 = data[pos++];
 
                 if (kind is 0x80 or 0x90 || (kind == 0xB0 && d1 == 64))
                 {
@@ -243,6 +258,7 @@ public sealed class MidiFile
 
     private static int ReadInt32(byte[] d, ref int pos)
     {
+        RequireBytes(d, pos, 4, d.Length);
         int v = (d[pos] << 24) | (d[pos + 1] << 16) | (d[pos + 2] << 8) | d[pos + 3];
         pos += 4;
         return v;
@@ -250,20 +266,28 @@ public sealed class MidiFile
 
     private static int ReadInt16(byte[] d, ref int pos)
     {
+        RequireBytes(d, pos, 2, d.Length);
         int v = (d[pos] << 8) | d[pos + 1];
         pos += 2;
         return v;
     }
 
-    private static long ReadVarLen(byte[] d, ref int pos)
+    private static void RequireBytes(byte[] data, int pos, int count, int end)
+    {
+        if (pos < 0 || count < 0 || end > data.Length || pos > end || count > end - pos)
+            throw new InvalidDataException("MIDI data is truncated or has an invalid chunk length.");
+    }
+
+    private static long ReadVarLen(byte[] d, ref int pos, int end)
     {
         long v = 0;
-        for (int i = 0; i < 4 && pos < d.Length; i++)
+        for (int i = 0; i < 4; i++)
         {
+            RequireBytes(d, pos, 1, end);
             byte b = d[pos++];
             v = (v << 7) | (uint)(b & 0x7F);
-            if ((b & 0x80) == 0) break;
+            if ((b & 0x80) == 0) return v;
         }
-        return v;
+        throw new InvalidDataException("MIDI variable-length value exceeds four bytes.");
     }
 }

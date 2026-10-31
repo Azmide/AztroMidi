@@ -39,6 +39,21 @@ internal static class TestMidi
         return b;
     }
 
+    public static string WriteRaw(byte[] body, int division = 480, int format = 0)
+    {
+        var file = new List<byte>("MThd"u8.ToArray());
+        file.AddRange(BigEndian(6, 4));
+        file.AddRange(BigEndian(format, 2));
+        file.AddRange(BigEndian(1, 2));
+        file.AddRange(BigEndian(division, 2));
+        file.AddRange("MTrk"u8.ToArray());
+        file.AddRange(BigEndian(body.Length, 4));
+        file.AddRange(body);
+        var path = Path.Combine(Path.GetTempPath(), $"aztromidi-raw-{Guid.NewGuid():N}.mid");
+        File.WriteAllBytes(path, file.ToArray());
+        return path;
+    }
+
     private static byte[] Text(byte type, string s) =>
         new byte[] { 0xFF, type, (byte)s.Length }.Concat(System.Text.Encoding.ASCII.GetBytes(s)).ToArray();
 
